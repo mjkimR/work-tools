@@ -1,0 +1,48 @@
+[project]
+name = "work-tools"
+version = "0.1.0"
+description = "Personal AI agent skills and scripts for work automation."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.3.2",
+    "dotenv>=0.9.9",
+    "gitpython>=3.1.46",
+    "loguru>=0.7.3",
+    "pydantic-settings>=2.13.1",
+    "requests",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+exclude = [".git", ".venv"]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["F403", "E402"]
+"__init__.py" = ["F403"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+extraPaths = ["./work_tools/scripts"]
