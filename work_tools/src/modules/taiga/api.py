@@ -6,6 +6,7 @@ from .handler import TaigaCLIHandlers
 
 
 def get_handlers():
+    """Instantiate TaigaCLIHandlers, exiting with an error message on failure."""
     try:
         return TaigaCLIHandlers()
     except Exception as e:
@@ -136,6 +137,7 @@ def update_custom_attr_values(us_id, ref, values_json):
 
 
 def main():
+    """Entry point for the Taiga CLI."""
     cli()
 
 

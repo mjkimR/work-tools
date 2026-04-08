@@ -1,15 +1,55 @@
+import json
 import subprocess
 from urllib.parse import urlparse
 
 from core.exception import TokenRetrievalError
+from modules.browser.schema import SessionInfo
 
 
-def get_session_info(target_domain, fields=("auth_token", "token")):
+def get_session_info(
+    target_domain,
+    local_storage_fields: list[str] | None = None,
+    cookie_fields: list[str] | None = None,
+) -> SessionInfo:
     """
-    Extract auth token and base URL from Google Chrome using AppleScript.
-    Returns (token, base_url) or raises TaigaTokenError with a detailed message.
+    Extract values from localStorage and/or cookies of a matching Chrome tab.
+
+    Args:
+        target_domain: Domain string to match against open Chrome tab URLs.
+        local_storage_fields: List of localStorage keys to retrieve.
+        cookie_fields: List of cookie names to retrieve.
+
+    Returns:
+        SessionInfo object containing the base URL, localStorage values, and cookies.
     """
-    token_field = " || ".join([f"window.localStorage.getItem('{field}')" for field in fields])
+    if not local_storage_fields and not cookie_fields:
+        raise ValueError("At least one of local_storage_fields or cookie_fields must be provided.")
+
+    # Build JavaScript that collects all requested values and returns JSON
+    ls_js = ""
+    if local_storage_fields:
+        pairs = ", ".join([f'\\"{f}\\": localStorage.getItem(\\"{f}\\")' for f in local_storage_fields])
+        ls_js = f"var ls = {{{pairs}}};"
+    else:
+        ls_js = "var ls = {};"
+
+    if cookie_fields:
+        # Parse document.cookie and pick requested keys
+        cookie_js = (
+            "var _cookies = {};"
+            "document.cookie.split(';').forEach(function(c) {"
+            "  var p = c.trim().split('=');"
+            "  var k = p[0]; var v = decodeURIComponent(p.slice(1).join('='));"
+            "  _cookies[k] = v;"
+            "});"
+        )
+        pairs = ", ".join([f'\\"{f}\\": (_cookies[\\"{f}\\"] || null)' for f in cookie_fields])
+        cookie_js += f"var ck = {{{pairs}}};"
+    else:
+        cookie_js = "var ck = {};"
+
+    js_snippet = f"{ls_js} {cookie_js} JSON.stringify({{ls: ls, ck: ck}});"
+
     applescript = f'''
     tell application "Google Chrome"
         set foundInfo to "NOT_FOUND"
@@ -17,9 +57,9 @@ def get_session_info(target_domain, fields=("auth_token", "token")):
             repeat with t in tabs of w
                 set currentURL to URL of t
                 if currentURL contains "{target_domain}" then
-                    set foundToken to execute t javascript "{token_field};"
-                    if foundToken is not "NOT_FOUND" and foundToken is not missing value and foundToken is not "null" then
-                        set foundInfo to foundToken & "|" & currentURL
+                    set jsResult to execute t javascript "{js_snippet}"
+                    if jsResult is not missing value and jsResult is not "" then
+                        set foundInfo to jsResult & "|" & currentURL
                         exit repeat
                     end if
                 end if
@@ -37,28 +77,39 @@ def get_session_info(target_domain, fields=("auth_token", "token")):
             stderr_msg = result.stderr.strip()
             if "자바스크립트 허용" in stderr_msg or "Allow JavaScript" in stderr_msg or "Apple Events" in stderr_msg:
                 raise TokenRetrievalError(
-                    "Chrome에서 AppleScript JavaScript 실행이 비활성화되어 있습니다.\n"
-                    "Chrome 메뉴 → 보기 → 개발자 → 'Apple Events의 자바스크립트 허용' 을 체크해주세요."
+                    "AppleScript JavaScript execution is disabled in Chrome.\n"
+                    "Go to Chrome menu → View → Developer → Enable 'Allow JavaScript from Apple Events'."
                 )
-            raise TokenRetrievalError(f"AppleScript 실행 오류: {stderr_msg}")
+            raise TokenRetrievalError(f"AppleScript execution error: {stderr_msg}")
 
         output = result.stdout.strip()
 
         if output == "NOT_FOUND" or not output:
             raise TokenRetrievalError(
-                f"Chrome에서 '{target_domain}' 도메인의 탭을 찾을 수 없습니다.\n"
-                "Chrome에서 해당 탭에 로그인되어 있는지 확인해주세요."
+                f"Could not find a tab with domain '{target_domain}' in Chrome.\n"
+                "Please make sure you are logged in on that tab in Chrome."
             )
 
-        token, tab_url = output.split("|", 1)
+        json_part, tab_url = output.split("|", 1)
+        data = json.loads(json_part)
 
         # Determine base_url from tab_url
         parsed = urlparse(tab_url)
         scheme = parsed.scheme or "https"
         netloc = parsed.netloc
-        base_url = f"{scheme}://{netloc}/api/v1"
-        return token.strip('"'), base_url
+        base_url = f"{scheme}://{netloc}"
+
+        session_info = SessionInfo(base_url=base_url, tab_url=tab_url)
+        if local_storage_fields:
+            session_info.local_storage = {
+                k: (v.strip('"') if isinstance(v, str) else v) for k, v in data.get("ls", {}).items()
+            }
+        if cookie_fields:
+            session_info.cookies = data.get("ck", {})
+
+        return session_info
+
     except TokenRetrievalError:
         raise
     except Exception as e:
-        raise TokenRetrievalError(f"Chrome 세션 정보 추출 중 예상치 못한 오류 발생: {e}") from e
+        raise TokenRetrievalError(f"Unexpected error while extracting Chrome session info: {e}") from e

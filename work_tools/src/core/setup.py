@@ -7,12 +7,21 @@ __initialized = False
 
 
 def load_env():
+    """Load environment variables from the .env file."""
     env_path = get_env_path()
     if not load_dotenv(env_path):
         raise RuntimeError(f"Failed to load environment variables from {env_path}")
 
 
 def setup(ignore_error=False):
+    """Run all initialization steps (env loading, logger setup).
+
+    Args:
+        ignore_error: If True, silently skip any step that raises an exception.
+
+    Raises:
+        RuntimeError: If a step fails and ignore_error is False.
+    """
     global __initialized
     if __initialized:
         return

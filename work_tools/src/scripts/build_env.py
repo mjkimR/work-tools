@@ -1,13 +1,14 @@
-import logging
 import os
 import subprocess
 
 from core import setup
+from loguru import logger
 from modules.taiga import TaigaClient
 from util.project_path import get_git_repo_root
 
 
 def _build_taiga_env():
+    """Build Taiga-related environment variables interactively."""
     client = TaigaClient()
 
     # 1. My ID (Not stored in .env, just for confirmation)
@@ -53,7 +54,8 @@ def _build_taiga_env():
 
 
 def _build_git_env():
-    # 1. git user.email 가져오기
+    """Build Git-related environment variables interactively."""
+    # 1. Get git user.email
     git_email = subprocess.run(
         ["git", "config", "--global", "user.email"], capture_output=True, text=True
     ).stdout.strip()
@@ -71,6 +73,7 @@ def _build_git_env():
 
 
 def _make_env_line(key, value):
+    """Format a key-value pair as a .env file line."""
     if isinstance(value, tuple) or isinstance(value, list):
         if len(value) >= 2:
             return f"# {value[1]}\n{key}={value[0]}"
@@ -80,8 +83,9 @@ def _make_env_line(key, value):
 
 
 def build_env_file():
+    """Build and write the .env file by collecting Taiga and Git settings."""
     setup(ignore_error=True)
-    logging.info("Create Env File...")
+    logger.info("Create Env File...")
 
     try:
         taiga_env = _build_taiga_env()
@@ -100,7 +104,7 @@ def build_env_file():
         with open(env_path, "w") as f:
             f.write(env_content)
 
-        logging.info(f".env file has been created at: {env_path}")
+        logger.info(f".env file has been created at: {env_path}")
 
     except Exception as e:
         raise Exception(f"Failed to build .env file: {e}") from e

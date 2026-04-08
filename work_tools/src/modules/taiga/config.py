@@ -23,10 +23,8 @@ class TaigaSettings(BaseSettings):
     @model_validator(mode="before")
     @classmethod
     def parse_ca_fields(cls, values: dict) -> dict:
-        """TAIGA_CA_* 환경변수를 TAIGA_CA dict로 합칩니다."""
-        # values에 없는 경우 os.environ에서도 탐색
+        """Parse custom attribute fields from environment variables starting with TAIGA_CA_ and add them to the settings."""
         all_values = {**os.environ, **values}
-        print(all_values)
         ca: dict[str, int] = {}
         for k, v in all_values.items():
             if k.startswith("TAIGA_CA_"):

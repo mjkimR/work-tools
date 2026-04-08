@@ -23,11 +23,11 @@ def setup_logger(log_path: str | None = None):
     # 1. Console (Text + Color)
     logger.add(
         sys.stdout,
-        format="<level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>",
+        format="<level>{level: <8}</level> | <level>{message}</level>",
         level="INFO",
-        colorize=True,
-        backtrace=True,
-        diagnose=True,
+        colorize=False,
+        backtrace=False,
+        diagnose=False,
     )
     # 2. File (Text)
     logger.add(

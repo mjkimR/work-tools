@@ -4,16 +4,24 @@ from .client import TaigaClient
 
 
 class TaigaCLIHandlers:
+    """CLI command handlers that bridge Click commands to TaigaClient API calls.
+
+    Each public method corresponds to a CLI subcommand and handles
+    argument resolution, API interaction, and output formatting.
+    """
+
     def __init__(self):
+        """Initialize handlers with a TaigaClient instance."""
         self.client = TaigaClient()
 
-    # ── 공통 헬퍼 ────────────────────────────────────────────────────────────
+    # ── Common Helpers ───────────────────────────────────────────────────────
 
     def _resolve_us_id(
         self,
         id=None,
         ref=None,
     ) -> int:
+        """Resolve a user story's internal ID from either an ID or a ref number."""
         if id is not None:
             return id
         if ref is None:
@@ -23,41 +31,46 @@ class TaigaCLIHandlers:
         return resolved["id"]
 
     def _resolve_assigned_to(self, me=False, assigned_to=None, label="Assigning to") -> int | None:
+        """Resolve the assignee user ID, using the current user if `me` is True."""
         if me:
             user = self.client.get_me()
             print(f"{label}: {user['full_name']} (ID: {user['id']})")
             return user["id"]
         return assigned_to
 
-    # ── 커맨드 핸들러 ─────────────────────────────────────────────────────────
+    # ── Command Handlers ──────────────────────────────────────────────────────
 
     def list_projects(self):
+        """List all accessible projects."""
         projects = self.client.get_projects()
         for p in projects:
             print(f"ID: {p['id']} | Name: {p['name']} | Slug: {p['slug']}")
 
     def search_userstories(self, query=None, me=False):
+        """Search user stories with optional query and assignee filter."""
         stories = self.client.search_user_stories(query=query, assigned_to_me=me)
         if not stories:
-            print("검색 결과가 없습니다.")
+            print("No results found.")
             return
         for s in stories:
             assigned = s.get("assigned_to_extra_info")
-            assignee = assigned["full_name_display"] if assigned else "미할당"
+            assignee = assigned["full_name_display"] if assigned else "Unassigned"
             print(f"ID: {s['id']} | Ref: #{s['ref']} | Subject: {s['subject']} | Assignee: {assignee}")
 
     def get_userstory(self, id=None, ref=None):
+        """Fetch and display a single user story by ID or ref."""
         us_id = self._resolve_us_id(id=id, ref=ref)
         us = self.client.get_user_story(us_id)
         print(f"ID: {us['id']} | Ref: #{us['ref']} | Subject: {us['subject']}")
         assigned = us.get("assigned_to_extra_info")
-        print(f"Assignee: {assigned['full_name_display'] if assigned else '미할당'}")
+        print(f"Assignee: {assigned['full_name_display'] if assigned else 'Unassigned'}")
         print(f"Version: {us['version']}")
         print(f"URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
 
     def update_userstory(
         self, id=None, ref=None, project=None, subject=None, description=None, status=None, me=False, assigned_to=None
     ):
+        """Update an existing user story's fields."""
         us_id = self._resolve_us_id(id=id, ref=ref)
         resolved_assigned = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
         us = self.client.update_user_story(
@@ -71,6 +84,7 @@ class TaigaCLIHandlers:
         print(f"US URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
 
     def create_userstory(self, subject, description="", tasks=None, tasks_json=None, me=False):
+        """Create a new user story, optionally with associated tasks."""
         assigned_to = self._resolve_assigned_to(me=me)
         us = self.client.create_user_story(subject, description, assigned_to=assigned_to)
         print(f"User Story created: {us['id']} - {us['subject']}")
@@ -95,6 +109,7 @@ class TaigaCLIHandlers:
             print(f"  - Task created: {task['id']} - {task['subject']}")
 
     def create_task(self, subject=None, description="", tasks=None, tasks_json=None, us=None, us_ref=None, me=False):
+        """Create one or more tasks, optionally linked to a user story."""
         assigned_to = self._resolve_assigned_to(me=me, label="Assigning task(s) to")
 
         us_id = None
@@ -127,15 +142,17 @@ class TaigaCLIHandlers:
             print(f"  URL: https://tree.taiga.io/project/{task['project_extra_info']['slug']}/task/{task['ref']}")
 
     def list_custom_attributes(self):
+        """List all custom attribute definitions for user stories."""
         attrs = self.client.get_userstory_custom_attributes()
         if not attrs:
-            print("Custom Attributes 없음")
+            print("No custom attributes found.")
         else:
             for attr in attrs:
                 env_key = "TAIGA_CA_" + attr["name"].upper().replace(" ", "_").replace("-", "_")
                 print(f"ID: {attr['id']} | Name: {attr['name']} | Type: {attr['type']} | Env: {env_key}")
 
     def get_custom_attr_values(self, id=None, ref=None):
+        """Fetch and display custom attribute values for a user story."""
         us_id = self._resolve_us_id(id=id, ref=ref)
         attr_map = {}
         for attr in self.client.get_userstory_custom_attributes():
@@ -143,13 +160,14 @@ class TaigaCLIHandlers:
         result = self.client.get_userstory_custom_attribute_values(us_id)
         values = result.get("attributes_values", {})
         if not values:
-            print("설정된 Custom Attribute 값 없음")
+            print("No custom attribute values set.")
         else:
             for attr_id, value in values.items():
                 name = attr_map.get(str(attr_id), f"ID:{attr_id}")
                 print(f"  {name} (ID: {attr_id}): {value}")
 
     def update_custom_attr_values(self, values_json, id=None, ref=None):
+        """Update custom attribute values for a user story from a JSON string."""
         us_id = self._resolve_us_id(id=id, ref=ref)
         try:
             values_dict = json.loads(values_json)
