@@ -1,25 +1,49 @@
 # work-tools
 
-회사 업무 자동화를 위한 개인용 AI 스킬 및 스크립트 모음입니다.
+A personal collection of AI skills and scripts for automating work tasks.
 
-## 📦 스킬 목록
-
-| 폴더                                        | 설명                            | 상태     |
-|-------------------------------------------|-------------------------------|--------|
-| [`task-writer/`](./task-writer/README.md) | Taiga User Story / Task 자동 생성 | ✅ 운영 중 |
-
-> 향후 IMS(이슈 관리 페이지) 연동, 주간보고 생성 등의 스킬이 추가될 예정입니다.
-
-## 🛠️ 환경
+## 🛠️ Environment
 
 - **OS**: macOS
 - **Python**: 3.13+
-- **패키지 매니저**: [uv](https://github.com/astral-sh/uv)
+- **Package Manager**: [uv](https://github.com/astral-sh/uv)
 
-## ⚡ 빠른 시작
+## ⚡ Quick Start
 
 ```bash
 uv sync
 ```
 
-각 스킬의 상세 사용법은 해당 폴더의 README를 참고하세요.
+## 📁 Project Structure
+
+```
+work_tools/
+├── SKILL.md                  # Agent skill definition (MCP-style skill manifest)
+├── references/               # Markdown-based reference documents for AI context
+│   ├── api_spec.md           # CLI tool API specifications
+│   ├── feature_guideline.md  # Guidelines for new feature tasks
+│   ├── future_task_guideline.md  # Guidelines for future/TODO tasks
+│   └── issue_guideline.md    # Guidelines for client issue tasks
+└── src/
+    ├── core/                 # Core utilities (logging, setup, exceptions)
+    ├── modules/
+    │   ├── browser/          # Extracts auth tokens and cookies from a running browser
+    │   ├── docs/             # read-docs CLI — composes context from references, env vars, and dynamic data
+    │   ├── git_repo/         # Git CLI — staged diff, commit history, branch info
+    │   ├── ims/              # In-house IMS CLI — document retrieval and comment posting
+    │   ├── taiga/            # In-house Taiga CLI — user stories, tasks, and custom attributes
+    │   └── workflow/         # Facade layer — orchestrates cross-tool automation workflows
+    ├── scripts/              # Standalone utility scripts
+    └── util/                 # Shared utility helpers
+```
+
+### Module Overview
+
+| Module | Description |
+|---|---|
+| `browser` | Extracts auth tokens and cookies from a running browser (e.g. Chrome) for authenticated API calls |
+| `docs` | composes contextual information from references, env vars, and dynamic data for AI consumption |
+| `git_repo` | Git CLI — staged diff, recent commit history, and branch info for AI-assisted workflows |
+| `ims` | In-house IMS CLI — document retrieval (single/bulk), comment posting via browser cookie auth |
+| `taiga` | In-house Taiga CLI — user story/task management, status queries, and custom attributes |
+| `workflow` | Facade layer — orchestrates cross-tool automation (e.g. full context retrieval, one-shot US creation) |

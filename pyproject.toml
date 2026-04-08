@@ -5,23 +5,35 @@ description = "Personal AI agent skills and scripts for work automation."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "click>=8.3.2",
     "dotenv>=0.9.9",
     "gitpython>=3.1.46",
+    "httpx>=0.28.1",
     "loguru>=0.7.3",
     "pydantic-settings>=2.13.1",
+    "pyyaml>=6.0",
     "requests",
 ]
+
+[project.scripts]
+taiga-cli = "modules.taiga.api:main"
+git-cli = "modules.git_repo.api:main"
+docs-cli = "modules.docs.api:main"
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "ruff>=0.15.0",
+    "types-beautifulsoup4>=4.12.0.20250516",
 ]
 
 [tool.uv]
 package = true
+
+[tool.setuptools.packages.find]
+where = ["work_tools/src"]
 
 [tool.ruff]
 exclude = [".git", ".venv"]
