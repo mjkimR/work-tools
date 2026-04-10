@@ -1,8 +1,8 @@
 import sys
 
 import click
-
-from .handler import TaigaCLIHandlers
+from core import setup
+from modules.taiga.handler import TaigaCLIHandlers
 
 
 def get_handlers():
@@ -138,6 +138,7 @@ def update_custom_attr_values(us_id, ref, values_json):
 
 def main():
     """Entry point for the Taiga CLI."""
+    setup()
     cli()
 
 

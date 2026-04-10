@@ -1,6 +1,6 @@
 import json
 
-from .client import TaigaClient
+from modules.taiga.client import TaigaClient
 
 
 class TaigaCLIHandlers:

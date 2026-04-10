@@ -16,7 +16,6 @@ class TaigaSettings(BaseSettings):
     )
     custom_attributes: dict[str, int] = Field(
         default={},
-        validation_alias="TAIGA_CA",
         description="Custom attributes for user stories, loaded from TAIGA_CA_* environment variables",
     )
 
