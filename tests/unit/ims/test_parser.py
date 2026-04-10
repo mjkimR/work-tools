@@ -1,11 +1,7 @@
 """Tests for ImsDocumentParser — HTML fixture-based parsing verification."""
 
-import pathlib
-
 import pytest
 from modules.ims.parser import ImsDocumentParser
-
-FIXTURES = pathlib.Path(__file__).parent.parent.parent / "fixtures" / "ims"
 
 
 @pytest.fixture

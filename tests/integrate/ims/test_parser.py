@@ -1,11 +1,9 @@
 """Tests for ImsDocumentParser — HTML fixture-based parsing verification."""
 
-import pathlib
-
 import pytest
 from modules.ims.parser import ImsDocumentParser
 
-FIXTURES = pathlib.Path(__file__).parent.parent.parent / "fixtures" / "ims"
+from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
 
 
 @pytest.fixture
@@ -15,12 +13,12 @@ def parser():
 
 @pytest.fixture
 def sample_html():
-    return (FIXTURES / "sample_document.html").read_text(encoding="utf-8")
+    return SAMPLE_DOCUMENT_HTML
 
 
 @pytest.fixture
 def login_required_html():
-    return (FIXTURES / "login_required.html").read_text(encoding="utf-8")
+    return LOGIN_REQUIRED_HTML
 
 
 class TestParseDocument:
