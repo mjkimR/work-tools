@@ -4,8 +4,6 @@ Matches ImsClient's public method signatures exactly.
 If a signature changes, tests using this fake will break → interface drift detected.
 """
 
-from __future__ import annotations
-
 from modules.ims.parser import ImsDocument, ImsDocumentParser
 
 from tests.fake.data.ims import SAMPLE_DOCUMENT_HTML

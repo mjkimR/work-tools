@@ -4,8 +4,6 @@ Matches TaigaClient's public method signatures exactly.
 If a signature changes, tests using this fake will break → interface drift detected.
 """
 
-from __future__ import annotations
-
 from tests.fake.data.taiga import (
     CUSTOM_ATTRIBUTE_VALUES,
     CUSTOM_ATTRIBUTES,

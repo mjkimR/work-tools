@@ -4,6 +4,7 @@ from modules.taiga.handler import TaigaCLIHandlers
 from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
 from tests.fake.ims_client import FakeImsClient
 from tests.fake.taiga_client import FakeTaigaClient
+from tests.utils.git_repo import make_git_repo
 
 # =============================================================================
 # Taiga
@@ -45,3 +46,14 @@ def sample_document_html():
 def login_required_html():
     """HTML page without kboard-document-wrap (login-required simulation)."""
     return LOGIN_REQUIRED_HTML
+
+
+# =============================================================================
+# Git Repo
+# =============================================================================
+
+
+@pytest.fixture
+def git_manager(tmp_path):
+    """GitRepoManager backed by a real temporary git repo with sample commits."""
+    return make_git_repo(tmp_path)
