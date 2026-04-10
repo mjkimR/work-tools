@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from modules.ims.parser import ImsDocument, ImsDocumentParser
 
-from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
-
+from tests.fake.data.ims import SAMPLE_DOCUMENT_HTML
 
 # Pre-built documents keyed by UID
 _parser = ImsDocumentParser()

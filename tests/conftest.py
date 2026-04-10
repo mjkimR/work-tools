@@ -5,7 +5,6 @@ from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
 from tests.fake.ims_client import FakeImsClient
 from tests.fake.taiga_client import FakeTaigaClient
 
-
 # =============================================================================
 # Taiga
 # =============================================================================
