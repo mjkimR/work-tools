@@ -1,3 +1,4 @@
+import pathlib
 import re
 import subprocess
 
@@ -14,6 +15,24 @@ class GitRepoManager:
     def __init__(self, settings: GitRepoSettings | None = None):
         """Initialize with git repository settings."""
         self.settings = settings or get_git_settings()
+
+    def _run_git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        """Run a git command against the configured repository.
+
+        Args:
+            *args: Git sub-command and arguments (without ``git -C <path>``).
+
+        Returns:
+            The completed process result.
+
+        Raises:
+            RuntimeError: If the command exits with a non-zero return code.
+        """
+        cmd = ["git", "-C", self.repo_path, *args]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"git command failed: {' '.join(args)}\n{result.stderr.strip()}")
+        return result
 
     @property
     def repo_path(self) -> str:
@@ -85,9 +104,6 @@ class GitRepoManager:
             extra_flags = []
 
         cmd = [
-            "git",
-            "-C",
-            self.repo_path,
             "log",
             "--author",
             self.author_email,
@@ -97,10 +113,7 @@ class GitRepoManager:
             *rev_range,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            raise RuntimeError(f"git log execution error:\n{result.stderr.strip()}")
+        result = self._run_git(*cmd)
 
         raw = result.stdout.strip()
         if not raw:
@@ -142,10 +155,7 @@ class GitRepoManager:
         Raises:
             RuntimeError: If the git show command fails.
         """
-        cmd = ["git", "-C", self.repo_path, "show", "--stat", "--patch", sha]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"git show error ({sha}):\n{result.stderr.strip()}")
+        result = self._run_git("show", "--stat", "--patch", sha)
         return result.stdout.strip()
 
     def fetch_commits_with_diff(self, commit_input: str) -> list[dict]:
@@ -181,3 +191,37 @@ class GitRepoManager:
                 print(f"Body   :\n{c['body']}")
             print("\n--- diff ---")
             print(c["diff"])
+
+    # ── Commit-info helpers ─────────────────────────────────────────────
+
+    def get_staged_diff(self) -> str:
+        """Return the staged (``--cached``) diff output.
+
+        Returns:
+            The diff string, or empty string if nothing is staged.
+        """
+        result = self._run_git("diff", "--cached")
+        return result.stdout.strip()
+
+    def get_recent_logs(self, count: int = 10) -> str:
+        """Return recent commit subjects as a newline-separated list.
+
+        Args:
+            count: Number of recent commits to retrieve.
+
+        Returns:
+            Formatted string of recent commit subjects prefixed with ``-``.
+        """
+        result = self._run_git("log", f"-n{count}", "--pretty=format:- %s")
+        return result.stdout.strip()
+
+    @staticmethod
+    def get_commit_style_guide() -> str:
+        """Read and return the commit style guide markdown.
+
+        Returns:
+            Contents of ``commit_style.md`` located alongside this module.
+        """
+        style_path = pathlib.Path(__file__).parent / "commit_style.md"
+        return style_path.read_text(encoding="utf-8")
+

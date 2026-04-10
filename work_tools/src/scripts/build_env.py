@@ -64,11 +64,16 @@ def _build_git_env():
     # 2. git target repo (optional)
     default_repo = os.getenv("GIT_TARGET_REPO", "")
     git_target_repo = input(f"Enter Git target repository URL (optional, default: '{default_repo}'): ").strip()
+
+    # 3. git language
+    default_lang = os.getenv("GIT_LANG", "kr")
+
     if not git_target_repo:
         git_target_repo = default_repo
     return {
         "GIT_USER_EMAIL": git_email,
         "GIT_TARGET_REPO": git_target_repo,
+        "GIT_LANG": default_lang,
     }, "# -- Git Environments"
 
 

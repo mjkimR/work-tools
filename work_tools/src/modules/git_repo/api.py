@@ -1,8 +1,8 @@
 import sys
 
 import click
-
-from .git_log import GitRepoManager
+from core import setup
+from modules.git_repo.git_log import GitRepoManager
 
 
 def get_manager():
@@ -47,8 +47,54 @@ def log(commit_input):
     manager.print_commits(commits)
 
 
+@cli.command("commit-info")
+@click.option("-m", "--module", "module_name", default=None, help="Module name to prefix the commit subject with [module].")
+@click.option("-v", "--verbose", is_flag=True, help="Request a detailed body in addition to the subject line.")
+@click.argument("extra", nargs=-1)
+def commit_info(module_name, verbose, extra):
+    """Gather staged diff, recent logs, and commit style guide for AI-assisted commit message generation.
+
+    Any trailing arguments are passed through as extra instructions.
+    """
+    manager = get_manager()
+
+    # 1. Staged diff
+    staged_diff = manager.get_staged_diff()
+    if not staged_diff:
+        click.echo("Error: No staged changes found. Run 'git add' first.", err=True)
+        sys.exit(1)
+
+    # 2. Recent commit logs
+    recent_logs = manager.get_recent_logs()
+
+    # 3. Commit style guide
+    style_guide = manager.get_commit_style_guide()
+
+    # 4. Build supplementary instructions
+    instructions: list[str] = []
+    if module_name:
+        instructions.append(f"- Prefix the subject with '[{module_name}]'.")
+    if verbose:
+        instructions.append("- Include a detailed body with bullet points after a blank line.")
+    else:
+        instructions.append("- Output ONLY a single subject line. No body, no quotes, no explanation.")
+    if extra:
+        instructions.append(f"- Additional request: {' '.join(extra)}")
+
+    # 5. Output
+    click.echo("## Commit Style Guide\n")
+    click.echo(style_guide)
+    click.echo("\n## Instructions\n")
+    click.echo("\n".join(instructions))
+    click.echo("\n## Recent Commit Logs\n")
+    click.echo(recent_logs)
+    click.echo("\n## Staged Diff\n")
+    click.echo(staged_diff)
+
+
 def main():
     """Entry point for the Git Repo CLI."""
+    setup()
     cli()
 
 
