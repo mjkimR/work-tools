@@ -10,6 +10,7 @@ def get_session_info(
     target_domain,
     local_storage_fields: list[str] | None = None,
     cookie_fields: list[str] | None = None,
+    cookie_prefixes: list[str] | None = None,
 ) -> SessionInfo:
     """
     Extract values from localStorage and/or cookies of a matching Chrome tab.
@@ -17,24 +18,26 @@ def get_session_info(
     Args:
         target_domain: Domain string to match against open Chrome tab URLs.
         local_storage_fields: List of localStorage keys to retrieve.
-        cookie_fields: List of cookie names to retrieve.
+        cookie_fields: List of cookie names to retrieve (exact match).
+        cookie_prefixes: List of cookie name prefixes to retrieve.
+            Any cookie whose name starts with one of these prefixes will be included.
 
     Returns:
         SessionInfo object containing the base URL, localStorage values, and cookies.
     """
-    if not local_storage_fields and not cookie_fields:
-        raise ValueError("At least one of local_storage_fields or cookie_fields must be provided.")
+    needs_cookies = bool(cookie_fields or cookie_prefixes)
+    if not local_storage_fields and not needs_cookies:
+        raise ValueError("At least one of local_storage_fields, cookie_fields, or cookie_prefixes must be provided.")
 
     # Build JavaScript that collects all requested values and returns JSON
-    ls_js = ""
     if local_storage_fields:
         pairs = ", ".join([f'\\"{f}\\": localStorage.getItem(\\"{f}\\")' for f in local_storage_fields])
         ls_js = f"var ls = {{{pairs}}};"
     else:
         ls_js = "var ls = {};"
 
-    if cookie_fields:
-        # Parse document.cookie and pick requested keys
+    if needs_cookies:
+        # Parse all document.cookie entries into a lookup object
         cookie_js = (
             "var _cookies = {};"
             "document.cookie.split(';').forEach(function(c) {"
@@ -42,9 +45,23 @@ def get_session_info(
             "  var k = p[0]; var v = decodeURIComponent(p.slice(1).join('='));"
             "  _cookies[k] = v;"
             "});"
+            "var ck = {};"
         )
-        pairs = ", ".join([f'\\"{f}\\": (_cookies[\\"{f}\\"] || null)' for f in cookie_fields])
-        cookie_js += f"var ck = {{{pairs}}};"
+        # Exact-match fields
+        if cookie_fields:
+            for f in cookie_fields:
+                cookie_js += f'if(_cookies[\\"{f}\\"])ck[\\"{f}\\"]=_cookies[\\"{f}\\"];'
+        # Prefix-match fields: collect all cookies whose name starts with the prefix
+        if cookie_prefixes:
+            prefixes_json = ",".join([f'\\"{p}\\"' for p in cookie_prefixes])
+            cookie_js += (
+                f"var _prefixes=[{prefixes_json}];"
+                "Object.keys(_cookies).forEach(function(k){"
+                "_prefixes.forEach(function(px){"
+                "if(k.indexOf(px)===0)ck[k]=_cookies[k];"
+                "});"
+                "});"
+            )
     else:
         cookie_js = "var ck = {};"
 
@@ -104,7 +121,7 @@ def get_session_info(
             session_info.local_storage = {
                 k: (v.strip('"') if isinstance(v, str) else v) for k, v in data.get("ls", {}).items()
             }
-        if cookie_fields:
+        if needs_cookies:
             session_info.cookies = data.get("ck", {})
 
         return session_info
