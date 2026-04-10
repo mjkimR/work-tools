@@ -14,16 +14,45 @@ A personal collection of AI skills and scripts for automating work tasks.
 uv sync
 ```
 
+Then set up the `.env` file (see [Environment Variables](#-environment-variables) below).
+
+## 🔑 Environment Variables
+
+The `.env` file is generated interactively via `build_env.py`:
+
+```bash
+uv run python work_tools/src/scripts/build_env.py
+```
+
+The script will:
+1. Connect to Taiga via your open Chrome session and list available projects
+2. Ask you to select a project ID
+3. Auto-discover Taiga custom attributes and assign `TAIGA_CA_*` keys
+4. Collect Git settings (`GIT_USER_EMAIL`, `GIT_TARGET_REPO`)
+5. Write everything to `.env` at the project root
+
+> **Prerequisite**: Chrome must have the Taiga site open and logged in before running the script.
+
+## 🖥️ CLI Usage
+
+See [`work_tools/references/api_spec.md`](work_tools/references/api_spec.md) for the full command reference.
+
+> `api_spec.md` is auto-generated. To regenerate:
+> ```bash
+> uv run python work_tools/src/scripts/api_spec.py
+> ```
+
 ## 📁 Project Structure
 
 ```
 work_tools/
-├── SKILL.md                  # Agent skill definition (MCP-style skill manifest)
+├── SKILL.md                  # Agent skill router — routes tasks to the right read-docs subject
 ├── references/               # Markdown-based reference documents for AI context
-│   ├── api_spec.md           # CLI tool API specifications
-│   ├── feature_guideline.md  # Guidelines for new feature tasks
+│   ├── api_spec.md               # CLI tool API specifications (auto-generated)
+│   ├── task_writer_guideline.md  # Detailed instructions for Taiga task management
+│   ├── feature_guideline.md      # Guidelines for new feature tasks
 │   ├── future_task_guideline.md  # Guidelines for future/TODO tasks
-│   └── issue_guideline.md    # Guidelines for client issue tasks
+│   └── issue_guideline.md        # Guidelines for client issue tasks
 └── src/
     ├── core/                 # Core utilities (logging, setup, exceptions)
     ├── modules/
@@ -39,11 +68,11 @@ work_tools/
 
 ### Module Overview
 
-| Module | Description |
-|---|---|
-| `browser` | Extracts auth tokens and cookies from a running browser (e.g. Chrome) for authenticated API calls |
-| `docs` | composes contextual information from references, env vars, and dynamic data for AI consumption |
-| `git_repo` | Git CLI — staged diff, recent commit history, and branch info for AI-assisted workflows |
-| `ims` | In-house IMS CLI — document retrieval (single/bulk), comment posting via browser cookie auth |
-| `taiga` | In-house Taiga CLI — user story/task management, status queries, and custom attributes |
+| Module     | Description                                                                                           |
+|------------|-------------------------------------------------------------------------------------------------------|
+| `browser`  | Extracts auth tokens and cookies from a running browser (e.g. Chrome) for authenticated API calls     |
+| `docs`     | composes contextual information from references, env vars, and dynamic data for AI consumption        |
+| `git_repo` | Git CLI — staged diff, recent commit history, and branch info for AI-assisted workflows               |
+| `ims`      | In-house IMS CLI — document retrieval (single/bulk), comment posting via browser cookie auth          |
+| `taiga`    | In-house Taiga CLI — user story/task management, status queries, and custom attributes                |
 | `workflow` | Facade layer — orchestrates cross-tool automation (e.g. full context retrieval, one-shot US creation) |
