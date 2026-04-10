@@ -4,14 +4,10 @@ from __future__ import annotations
 
 import importlib
 import os
-from pathlib import Path
 
 import yaml
+from modules.docs.config import DocsSettings, get_docs_settings
 from pydantic import BaseModel
-
-from util.project_path import get_git_repo_root
-
-from .config import DocsSettings, get_docs_settings
 
 # ── Manifest Schema ──────────────────────────────────────────────────────────
 
@@ -60,7 +56,6 @@ class DocsLoader:
     def __init__(self, settings: DocsSettings | None = None):
         """Initialize DocsLoader with settings and parse the manifest."""
         self.settings: DocsSettings = settings or get_docs_settings()
-        self.project_root = Path(get_git_repo_root())
         self.manifest = self._load_manifest()
 
     # ── Public API ────────────────────────────────────────────────────────
@@ -68,6 +63,13 @@ class DocsLoader:
     def list_subjects(self) -> list[str]:
         """Return a sorted list of available subject names."""
         return sorted(self.manifest.subjects.keys())
+
+    def list_subjects_with_descriptions(self) -> dict[str, str]:
+        """Return an ordered dict of subject name -> first line of description."""
+        return {
+            name: (entry.description.strip().splitlines()[0] if entry.description else "")
+            for name, entry in sorted(self.manifest.subjects.items())
+        }
 
     def load(self, subject: str) -> str:
         """Compose the full context document for a given subject.
@@ -111,20 +113,17 @@ class DocsLoader:
 
     def _load_manifest(self) -> DocsManifest:
         """Parse docs_manifest.yaml into a DocsManifest model."""
-        manifest_path = self.settings.resolve_manifest_path(self.project_root)
-        if not manifest_path.exists():
-            raise FileNotFoundError(f"Manifest not found: {manifest_path}")
-
+        manifest_path = self.settings.resolve_manifest_path()
         with open(manifest_path, encoding="utf-8") as f:
             raw = yaml.safe_load(f) or {}
-
         return DocsManifest.model_validate(raw)
 
     def _read_references(self, paths: list[str]) -> list[str]:
         """Read reference files and return Markdown sections."""
         sections: list[str] = []
+        ref_root = self.settings.resolve_references_dir()
         for rel_path in paths:
-            abs_path = self.project_root / rel_path
+            abs_path = ref_root / rel_path
             if not abs_path.exists():
                 sections.append(f"## 📄 {rel_path}\n\n> ⚠️ File not found: `{abs_path}`")
                 continue

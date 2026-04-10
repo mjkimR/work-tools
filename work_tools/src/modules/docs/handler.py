@@ -1,4 +1,4 @@
-from .loader import DocsLoader
+from modules.docs.loader import DocsLoader
 
 
 class DocsCLIHandlers:
@@ -20,15 +20,3 @@ class DocsCLIHandlers:
         """
         output = self.loader.load(subject)
         print(output)
-
-    def list_subjects(self) -> None:
-        """List all available subjects defined in the manifest."""
-        subjects = self.loader.list_subjects()
-        if not subjects:
-            print("No subjects defined in the manifest.")
-            return
-        print("Available subjects:")
-        for s in subjects:
-            entry = self.loader.manifest.subjects.get(s)
-            desc = entry.description.strip() if entry and entry.description else ""
-            print(f"  - {s}: {desc}" if desc else f"  - {s}")

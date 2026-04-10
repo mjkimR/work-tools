@@ -1,37 +1,32 @@
 # docs_manifest.yaml
 # ─────────────────────────────────────────────────────────────────────────────
-# Subject별 AI 컨텍스트 구성 매니페스트
+# AI context configuration manifest per subject
 #
-# 각 subject는 다음 필드를 가짐:
-#   description   : subject 설명 (출력 헤더에 포함)
-#   references    : 프로젝트 루트 기준 상대 경로 리스트 (Markdown 파일)
-#   env_vars      : 포함할 환경변수 키 리스트 (값이 없으면 <NOT SET> 표시)
-#   generators    : 동적 데이터 생성기 Python dotted path 리스트
-#                   형식: "module.path:callable_name"  — callable은 () -> str
+# Each subject has the following fields:
+#   description   : subject description (included in output header)
+#   references    : list of relative paths from project root (Markdown files)
+#   env_vars      : list of environment variable keys to include (shows <NOT SET> if missing)
+#   generators    : list of Python dotted paths for dynamic data generators
+#                   format: "module.path:callable_name"  — callable is () -> str
 # ─────────────────────────────────────────────────────────────────────────────
 
 subjects:
   task-writer:
-    description: >
-      Taiga 유저스토리/태스크 자동 관리를 위한 AI 스킬 컨텍스트.
-      SKILL.md 지침과 가이드라인, Taiga 환경변수를 포함합니다.
+    description: "AI skill context for automated management of Taiga user stories and tasks."
     references:
-      - work_tools/SKILL.md
-      - work_tools/references/api_spec.md
-      - work_tools/references/feature_guideline.md
-      - work_tools/references/future_task_guideline.md
-      - work_tools/references/issue_guideline.md
+      - task_writer_guideline.md
+      - api_spec.md
+      - feature_guideline.md
+      - future_task_guideline.md
+      - issue_guideline.md
     env_vars:
       - TAIGA_PROJECT_ID
-      - TAIGA_DOMAIN
-    generators: []
+    generators: [ ] # TODO: show custom attributes ID list
 
   api-reference:
-    description: >
-      CLI 도구들의 API 명세 레퍼런스.
-      api_spec.md 문서와 동적 생성 스크립트 출력을 포함합니다.
+    description: "API specification reference for CLI tools."
     references:
-      - work_tools/references/api_spec.md
-    env_vars: []
-    generators:
-      - scripts.api_spec:generate_all
+      - api_spec.md
+    env_vars: [ ]
+    generators: [ ] # scripts.api_spec:generate_all
+
