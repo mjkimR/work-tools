@@ -1,9 +1,19 @@
+"""
+Session extraction from a running Chrome browser.
+
+- **macOS**: Uses AppleScript (default, no extra setup needed).
+- **Windows / Linux**: Uses Chrome DevTools Protocol (CDP).
+  Requires Chrome to be started with ``--remote-debugging-port=9222``.
+"""
+
 import json
+import platform
 import subprocess
 from urllib.parse import urlparse
 
 from core.exception import TokenRetrievalError
 from modules.browser.schema import SessionInfo
+from modules.browser.session_cdp import DEFAULT_CDP_PORT, get_session_info_cdp
 
 
 def get_session_info(
@@ -11,9 +21,11 @@ def get_session_info(
     local_storage_fields: list[str] | None = None,
     cookie_fields: list[str] | None = None,
     cookie_prefixes: list[str] | None = None,
+    *,
+    backend: str | None = None,
+    cdp_port: int = DEFAULT_CDP_PORT,
 ) -> SessionInfo:
-    """
-    Extract values from localStorage and/or cookies of a matching Chrome tab.
+    """Extract values from localStorage and/or cookies of a matching Chrome tab.
 
     Args:
         target_domain: Domain string to match against open Chrome tab URLs.
@@ -21,17 +33,49 @@ def get_session_info(
         cookie_fields: List of cookie names to retrieve (exact match).
         cookie_prefixes: List of cookie name prefixes to retrieve.
             Any cookie whose name starts with one of these prefixes will be included.
+        backend: Force a specific backend: ``"applescript"`` or ``"cdp"``.
+            When *None* (default), auto-detects based on the current OS —
+            AppleScript on macOS, CDP elsewhere.
+        cdp_port: Chrome DevTools Protocol port (only used with CDP backend).
 
     Returns:
         SessionInfo object containing the base URL, localStorage values, and cookies.
     """
+    if backend is None:
+        backend = "applescript" if platform.system() == "Darwin" else "cdp"
+
+    if backend == "cdp":
+        return get_session_info_cdp(
+            target_domain=target_domain,
+            local_storage_fields=local_storage_fields,
+            cookie_fields=cookie_fields,
+            cookie_prefixes=cookie_prefixes,
+            port=cdp_port,
+        )
+
+    # ── AppleScript backend (macOS only) ────────────────────────────────
+    return _get_session_info_applescript(
+        target_domain=target_domain,
+        local_storage_fields=local_storage_fields,
+        cookie_fields=cookie_fields,
+        cookie_prefixes=cookie_prefixes,
+    )
+
+
+def _get_session_info_applescript(
+    target_domain: str,
+    local_storage_fields: list[str] | None = None,
+    cookie_fields: list[str] | None = None,
+    cookie_prefixes: list[str] | None = None,
+) -> SessionInfo:
+    """Extract session info via AppleScript (macOS only)."""
     needs_cookies = bool(cookie_fields or cookie_prefixes)
     if not local_storage_fields and not needs_cookies:
         raise ValueError("At least one of local_storage_fields, cookie_fields, or cookie_prefixes must be provided.")
 
     # Build JavaScript that collects all requested values and returns JSON
     if local_storage_fields:
-        pairs = ", ".join([f'\\"{f}\\": localStorage.getItem(\\"{f}\\")' for f in local_storage_fields])
+        pairs = ", ".join([f'\\\\"{f}\\\\": localStorage.getItem(\\\\"{f}\\\\")' for f in local_storage_fields])
         ls_js = f"var ls = {{{pairs}}};"
     else:
         ls_js = "var ls = {};"
@@ -50,10 +94,10 @@ def get_session_info(
         # Exact-match fields
         if cookie_fields:
             for f in cookie_fields:
-                cookie_js += f'if(_cookies[\\"{f}\\"])ck[\\"{f}\\"]=_cookies[\\"{f}\\"];'
+                cookie_js += f'if(_cookies[\\\\"{f}\\\\"])ck[\\\\"{f}\\\\"]=_cookies[\\\\"{f}\\\\"];'
         # Prefix-match fields: collect all cookies whose name starts with the prefix
         if cookie_prefixes:
-            prefixes_json = ",".join([f'\\"{p}\\"' for p in cookie_prefixes])
+            prefixes_json = ",".join([f'\\\\"{p}\\\\"' for p in cookie_prefixes])
             cookie_js += (
                 f"var _prefixes=[{prefixes_json}];"
                 "Object.keys(_cookies).forEach(function(k){"
