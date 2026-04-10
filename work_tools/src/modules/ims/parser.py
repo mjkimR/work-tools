@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 @dataclass
@@ -55,7 +55,6 @@ class ImsDocumentParser:
         wrap = soup.select_one("#kboard-document .kboard-document-wrap")
         if wrap is None:
             raise ValueError("kboard-document-wrap not found. The page may require login.")
-
         uid = self._parse_uid(soup)
         title, project = self._parse_title(wrap)
         author, created_at, view_count = self._parse_summary(wrap)
@@ -82,11 +81,11 @@ class ImsDocumentParser:
         """Extract uid from hidden input #content-uid or URL canonical."""
         el = soup.select_one("#content-uid")
         if el:
-            return el.get("value", "")
+            return str(el.get("value", ""))
 
         canonical = soup.select_one("link[rel='canonical']")
         if canonical:
-            href = canonical.get("href", "")
+            href = str(canonical.get("href", ""))
             # /?kboard_content_redirect=8226 or /?uid=8226
             for param in ("kboard_content_redirect=", "uid="):
                 if param in href:
@@ -94,7 +93,7 @@ class ImsDocumentParser:
 
         return ""
 
-    def _parse_title(self, wrap: BeautifulSoup) -> tuple[str, str]:
+    def _parse_title(self, wrap: Tag) -> tuple[str, str]:
         """Separate title and [ProjectName]."""
         h1 = wrap.select_one(".kboard-title h1")
         if h1 is None:
@@ -113,7 +112,7 @@ class ImsDocumentParser:
 
         return title, project
 
-    def _parse_summary(self, wrap: BeautifulSoup) -> tuple[str, str, str]:
+    def _parse_summary(self, wrap: Tag) -> tuple[str, str, str]:
         """Parse author / created date / view count."""
         author = wrap.select_one(".detail-writer .detail-value")
         date = wrap.select_one(".detail-date .detail-value")
@@ -125,7 +124,7 @@ class ImsDocumentParser:
             view.get_text(strip=True) if view else "",
         )
 
-    def _parse_ext_fields(self, wrap: BeautifulSoup) -> dict[str, str]:
+    def _parse_ext_fields(self, wrap: Tag) -> dict[str, str]:
         """Parse ext-field-option rows such as category/status/assignee/version."""
         attrs: dict[str, str] = {}
         for row in wrap.select(".ext-field-option .row"):
@@ -138,14 +137,14 @@ class ImsDocumentParser:
                 attrs[key] = val
         return attrs
 
-    def _parse_content(self, wrap: BeautifulSoup) -> tuple[str, str]:
+    def _parse_content(self, wrap: Tag) -> tuple[str, str]:
         """Return content HTML and plain text."""
         content_div = wrap.select_one(".kboard-content .content-view")
         if content_div is None:
             return "", ""
         return str(content_div), content_div.get_text(separator="\n", strip=True)
 
-    def _parse_attachments(self, wrap: BeautifulSoup) -> list[ImsAttachment]:
+    def _parse_attachments(self, wrap: Tag) -> list[ImsAttachment]:
         attachments = []
         for li in wrap.select(".kboard-detail-attach .detail-attach"):
             a = li.select_one("a.attach-link")
@@ -156,7 +155,7 @@ class ImsDocumentParser:
                     ImsAttachment(
                         filename=filename_el.get_text(strip=True),
                         size=size_el.get_text(strip=True) if size_el else "",
-                        download_url=a.get("href", ""),
+                        download_url=str(a.get("href", "")),
                     )
                 )
         return attachments
