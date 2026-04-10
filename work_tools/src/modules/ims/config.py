@@ -6,8 +6,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class ImsSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
-
-    base_url: str = Field(validation_alias="IMS_BASE_URL", description="Base URL for the IMS API")
+    domain: str = Field(
+        default="/support-ai", validation_alias="IMS_DOMAIN", description="Domain to identify IMS sessions in the browser"
+    )
+    cookie_fields: list[str] = Field(
+        default=[
+            "PHPSESSID",
+        ],
+        validation_alias="IMS_COOKIE_FIELDS",
+        description="Cookie names to retrieve from the browser for authentication (exact match)",
+    )
+    cookie_prefixes: list[str] = Field(
+        default=[
+            "wordpress_logged_in",
+        ],
+        validation_alias="IMS_COOKIE_PREFIXES",
+        description="Cookie name prefixes to retrieve from the browser for authentication (prefix match)",
+    )
 
 
 @functools.lru_cache

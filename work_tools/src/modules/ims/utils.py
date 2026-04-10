@@ -10,14 +10,15 @@ class ImsUtils:
     query parameters (e.g. uuid) from those URLs.
     """
 
-    def __init__(self, settings: ImsSettings | None = None):
+    def __init__(self, base_url: str, settings: ImsSettings | None = None):
         self.settings = settings or get_ims_settings()
+        self.base_url = base_url
         self.url_pattern = None
 
     def get_url_pattern(self) -> re.Pattern:
         """Build and cache the compiled regex pattern for IMS URLs."""
         if self.url_pattern is None:
-            self.url_pattern = re.compile(rf"{re.escape(self.settings.base_url)}[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+")
+            self.url_pattern = re.compile(rf"{re.escape(self.base_url)}[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+")
         return self.url_pattern
 
     def get_ims_url(self, text: str) -> list[str]:
