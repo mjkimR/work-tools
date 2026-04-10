@@ -100,10 +100,12 @@ class TestCreateUserstory:
             assert task["user_story"] == us_id
 
     def test_create_userstory_with_tasks_json(self, taiga_handlers, fake_taiga_client):
-        tasks_json = json.dumps([
-            {"subject": "JSON Task 1", "description": "Desc 1"},
-            {"subject": "JSON Task 2"},
-        ])
+        tasks_json = json.dumps(
+            [
+                {"subject": "JSON Task 1", "description": "Desc 1"},
+                {"subject": "JSON Task 2"},
+            ]
+        )
         taiga_handlers.create_userstory(subject="US from JSON", tasks_json=tasks_json)
         assert len(fake_taiga_client.created_tasks) == 2
         assert fake_taiga_client.created_tasks[0]["subject"] == "JSON Task 1"

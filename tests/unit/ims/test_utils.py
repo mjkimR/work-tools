@@ -1,7 +1,6 @@
 """Tests for ImsUtils — URL extraction and UUID parsing."""
 
 import pytest
-
 from modules.ims.config import ImsSettings
 from modules.ims.utils import ImsUtils
 
@@ -22,10 +21,7 @@ class TestGetImsUrl:
         assert "uid=123" in urls[0]
 
     def test_multiple_urls(self, utils):
-        text = (
-            "Issue A: https://ims.example.com/board?uid=100 "
-            "Issue B: https://ims.example.com/board?uid=200"
-        )
+        text = "Issue A: https://ims.example.com/board?uid=100 Issue B: https://ims.example.com/board?uid=200"
         urls = utils.get_ims_url(text)
         assert len(urls) == 2
 

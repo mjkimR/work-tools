@@ -1,6 +1,5 @@
 """Tests for TaigaSettings — dynamic TAIGA_CA_* env var parsing."""
 
-import pytest
 
 from modules.taiga.config import TaigaSettings
 

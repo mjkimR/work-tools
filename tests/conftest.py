@@ -1,6 +1,6 @@
 import pytest
-
 from modules.taiga.handler import TaigaCLIHandlers
+
 from tests.fake.taiga_client import FakeTaigaClient
 
 

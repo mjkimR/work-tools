@@ -1,6 +1,5 @@
 """Tests for GitRepoManager — pure logic (no real git repo needed)."""
 
-import pytest
 
 from modules.git_repo.git_log import GitRepoManager
 

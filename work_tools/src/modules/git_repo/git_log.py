@@ -224,4 +224,3 @@ class GitRepoManager:
         """
         style_path = pathlib.Path(__file__).parent / "commit_style.md"
         return style_path.read_text(encoding="utf-8")
-

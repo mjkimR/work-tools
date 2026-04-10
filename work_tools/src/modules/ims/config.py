@@ -7,7 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ImsSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
     domain: str = Field(
-        default="/support-ai", validation_alias="IMS_DOMAIN", description="Domain to identify IMS sessions in the browser"
+        default="/support-ai",
+        validation_alias="IMS_DOMAIN",
+        description="Domain to identify IMS sessions in the browser",
     )
     cookie_fields: list[str] = Field(
         default=[

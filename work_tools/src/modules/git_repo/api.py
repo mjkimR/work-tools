@@ -48,7 +48,9 @@ def log(commit_input):
 
 
 @cli.command("commit-info")
-@click.option("-m", "--module", "module_name", default=None, help="Module name to prefix the commit subject with [module].")
+@click.option(
+    "-m", "--module", "module_name", default=None, help="Module name to prefix the commit subject with [module]."
+)
 @click.option("-v", "--verbose", is_flag=True, help="Request a detailed body in addition to the subject line.")
 @click.argument("extra", nargs=-1)
 def commit_info(module_name, verbose, extra):
