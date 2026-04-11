@@ -37,5 +37,5 @@ refactor: migrate TaigaClient to httpx
 
 1. Match the style of recent commit logs provided below.
 2. If a module name is provided, always prefix the subject with `[module]`.
-3. Write in English.
+3. Write in {lang}.
 4. One commit should represent one logical change.

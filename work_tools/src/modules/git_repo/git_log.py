@@ -215,12 +215,12 @@ class GitRepoManager:
         result = self._run_git("log", f"-n{count}", "--pretty=format:- %s")
         return result.stdout.strip()
 
-    @staticmethod
-    def get_commit_style_guide() -> str:
+    def get_commit_style_guide(self) -> str:
         """Read and return the commit style guide markdown.
 
         Returns:
             Contents of ``commit_style.md`` located alongside this module.
         """
         style_path = pathlib.Path(__file__).parent / "commit_style.md"
-        return style_path.read_text(encoding="utf-8")
+        content = style_path.read_text(encoding="utf-8")
+        return content.replace("{lang}", self.settings.lang)
