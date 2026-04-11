@@ -65,8 +65,5 @@ def make_git_repo(
     for msg in messages:
         _git(tmp_path, "commit", "--allow-empty", "-m", msg)
 
-    settings = GitRepoSettings(
-        user_email=user_email,
-        path=str(tmp_path),
-    )  # type: ignore[call-arg]
+    settings = GitRepoSettings()  # type: ignore[call-arg]
     return GitRepoManager(settings=settings)

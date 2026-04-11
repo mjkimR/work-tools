@@ -54,6 +54,8 @@ def login_required_html():
 
 
 @pytest.fixture
-def git_manager(tmp_path):
+def git_manager(tmp_path, monkeypatch):
     """GitRepoManager backed by a real temporary git repo with sample commits."""
+    monkeypatch.setenv("GIT_USER_EMAIL", "test@example.com")
+    monkeypatch.setenv("GIT_TARGET_REPO", str(tmp_path))
     return make_git_repo(tmp_path)
