@@ -7,8 +7,10 @@ from typing import Any
 import httpx
 from core.exception import TokenExpiredError, TokenRetrievalError
 from core.log import logger
+
 from modules.browser.schema import SessionInfo
 from modules.browser.session import get_session_info
+from modules.browser.session_cache import SessionCache
 
 
 class AuthMode(Enum):
@@ -85,27 +87,77 @@ class BrowserTokenBaseClient(ABC):
         """
         return {401, 403}
 
+    @property
+    def default_headers(self) -> dict[str, str]:
+        """Extra headers merged into every request beyond auth headers.
+
+        Override in subclasses to add User-Agent, Referer, Accept, etc.
+        """
+        return {}
+
     # ── Lifecycle ───────────────────────────────────────────────────────
 
     def __init__(self, base_url_override: str | None = None):
         """Discover session credentials from Chrome and build an httpx.Client.
 
+        On the first call for a given domain the credentials are fetched from the
+        running Chrome browser and persisted to a local cache file.  Subsequent
+        calls within the configured TTL reuse the cached credentials without
+        touching the browser.
+
         Args:
             base_url_override: If provided, use this as the API base URL
                                instead of the one derived from the browser tab.
         """
-        self.session_info: SessionInfo = get_session_info(
-            target_domain=self.domain,
-            local_storage_fields=self.local_storage_fields,
-            cookie_fields=self.cookie_fields,
-            cookie_prefixes=self.cookie_prefixes,
-        )
+        self._session_cache: SessionCache = SessionCache(self.domain)
+        self.session_info: SessionInfo = self._get_session_info_with_cache()
 
         discovered = base_url_override or self.session_info.base_url
         self.base_url: str = f"{discovered}{self.base_url_suffix}"
 
         headers, cookies = self._build_auth()
+        headers = {**self.default_headers, **headers}
         self.http: httpx.Client = httpx.Client(
+            base_url=self.base_url,
+            headers=headers,
+            cookies=cookies,
+            timeout=30.0,
+        )
+
+    # ── Session / cache helpers ─────────────────────────────────────────
+
+    def _get_session_info_with_cache(self) -> SessionInfo:
+        """Return a ``SessionInfo``, preferring a valid cached entry.
+
+        Flow:
+          1. Try to load from cache → return if valid.
+          2. Fetch fresh from the browser → save to cache → return.
+          3. If both fail, re-raise the original ``TokenRetrievalError``.
+        """
+        cached = self._session_cache.load()
+        if cached is not None:
+            return cached
+
+        logger.debug(f"[SessionCache] Cache miss for '{self.domain}'. Fetching from browser…")
+        session_info = get_session_info(
+            target_domain=self.domain,
+            local_storage_fields=self.local_storage_fields,
+            cookie_fields=self.cookie_fields,
+            cookie_prefixes=self.cookie_prefixes,
+        )
+        self._session_cache.save(session_info)
+        return session_info
+
+    def _rebuild_http_client(self) -> None:
+        """Close the current httpx.Client and build a new one from ``self.session_info``."""
+        try:
+            self.http.close()
+        except Exception:
+            pass
+
+        headers, cookies = self._build_auth()
+        headers = {**self.default_headers, **headers}
+        self.http = httpx.Client(
             base_url=self.base_url,
             headers=headers,
             cookies=cookies,
@@ -220,20 +272,38 @@ class BrowserTokenBaseClient(ABC):
     # ── Token expiry handling ───────────────────────────────────────────
 
     def _handle_unauthorized(self, response: httpx.Response) -> None:
-        """Raise ``TokenExpiredError`` with guidance for the user.
+        """Invalidate the session cache, refresh credentials from the browser,
+        and raise ``TokenExpiredError`` if the refresh also fails.
 
-        Override in subclasses to customise the error message or attempt
-        additional recovery steps.
+        Override in subclasses to customise recovery behaviour.
         """
         auth_label = "token" if self.auth_mode == AuthMode.BEARER else "cookie/session"
-        msg = (
-            f"[{response.status_code}] API request failed due to an authentication error.\n"
-            f"  -> The {auth_label} for '{self.domain}' tab in your browser may have expired.\n"
-            f"  -> Please log in to the service again in your browser and retry.\n"
-            f"  -> Response body: {response.text[:300]}"
+        logger.warning(
+            f"[{response.status_code}] Auth error for '{self.domain}'. "
+            "Invalidating cache and refreshing session from browser…"
         )
-        logger.error(msg)
-        raise TokenExpiredError(msg)
+
+        self._session_cache.invalidate()
+        try:
+            self.session_info = get_session_info(
+                target_domain=self.domain,
+                local_storage_fields=self.local_storage_fields,
+                cookie_fields=self.cookie_fields,
+                cookie_prefixes=self.cookie_prefixes,
+            )
+            self._session_cache.save(self.session_info)
+            self._rebuild_http_client()
+            logger.debug(f"[SessionCache] Session refreshed successfully for '{self.domain}'.")
+        except Exception as refresh_exc:
+            msg = (
+                f"[{response.status_code}] API request failed due to an authentication error.\n"
+                f"  -> The {auth_label} for '{self.domain}' tab in your browser may have expired.\n"
+                f"  -> Please log in to the service again in your browser and retry.\n"
+                f"  -> Response body: {response.text[:300]}\n"
+                f"  -> Refresh error: {refresh_exc}"
+            )
+            logger.error(msg)
+            raise TokenExpiredError(msg) from refresh_exc
 
     # ── Cleanup ─────────────────────────────────────────────────────────
 

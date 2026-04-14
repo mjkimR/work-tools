@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 import httpx
 import websockets.sync.client as ws_sync
 from core.exception import TokenRetrievalError
+
+from modules.browser.cookies_db import collect_cookies_from_db
 from modules.browser.schema import SessionInfo
 
 DEFAULT_CDP_PORT = 9222
@@ -111,40 +113,14 @@ def get_session_info_cdp(
     ws_url = tab["webSocketDebuggerUrl"]
     tab_url = tab.get("url", "")
 
-    # ── Build JavaScript ────────────────────────────────────────────────
+    # ── Build JavaScript (localStorage only) ───────────────────────────
     if local_storage_fields:
         pairs = ", ".join([f'"{f}": localStorage.getItem("{f}")' for f in local_storage_fields])
         ls_js = f"var ls = {{{pairs}}};"
     else:
         ls_js = "var ls = {};"
 
-    if needs_cookies:
-        cookie_js = (
-            "var _cookies = {};"
-            "document.cookie.split(';').forEach(function(c) {"
-            "  var p = c.trim().split('=');"
-            "  var k = p[0]; var v = decodeURIComponent(p.slice(1).join('='));"
-            "  _cookies[k] = v;"
-            "});"
-            "var ck = {};"
-        )
-        if cookie_fields:
-            for f in cookie_fields:
-                cookie_js += f'if(_cookies["{f}"])ck["{f}"]=_cookies["{f}"];'
-        if cookie_prefixes:
-            prefixes_json = ",".join([f'"{p}"' for p in cookie_prefixes])
-            cookie_js += (
-                f"var _prefixes=[{prefixes_json}];"
-                "Object.keys(_cookies).forEach(function(k){"
-                "_prefixes.forEach(function(px){"
-                "if(k.indexOf(px)===0)ck[k]=_cookies[k];"
-                "});"
-                "});"
-            )
-    else:
-        cookie_js = "var ck = {};"
-
-    js_snippet = f"{ls_js} {cookie_js} JSON.stringify({{ls: ls, ck: ck}});"
+    js_snippet = f"{ls_js} JSON.stringify({{ls: ls}});"
 
     # ── Execute and parse ───────────────────────────────────────────────
     try:
@@ -166,7 +142,13 @@ def get_session_info_cdp(
         session_info.local_storage = {
             k: (v.strip('"') if isinstance(v, str) else v) for k, v in data.get("ls", {}).items()
         }
+
+    # ── Collect cookies via browser_cookie3 (includes HttpOnly) ─────────
     if needs_cookies:
-        session_info.cookies = data.get("ck", {})
+        session_info.cookies = collect_cookies_from_db(
+            domain=netloc,
+            cookie_fields=cookie_fields,
+            cookie_prefixes=cookie_prefixes,
+        )
 
     return session_info

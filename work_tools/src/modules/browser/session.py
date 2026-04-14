@@ -12,6 +12,8 @@ import subprocess
 from urllib.parse import urlparse
 
 from core.exception import TokenRetrievalError
+
+from modules.browser.cookies_db import collect_cookies_from_db
 from modules.browser.schema import SessionInfo
 from modules.browser.session_cdp import DEFAULT_CDP_PORT, get_session_info_cdp
 
@@ -68,50 +70,28 @@ def _get_session_info_applescript(
     cookie_fields: list[str] | None = None,
     cookie_prefixes: list[str] | None = None,
 ) -> SessionInfo:
-    """Extract session info via AppleScript (macOS only)."""
+    """Extract session info via AppleScript + browser_cookie3 (macOS only).
+
+    - localStorage  : AppleScript (JS execution in the matching Chrome tab)
+    - cookies       : browser_cookie3 — reads Chrome's SQLite DB directly,
+                      which allows access to HttpOnly cookies that are invisible
+                      to ``document.cookie`` (e.g. ``wordpress_logged_in_*``,
+                      ``csrf_token_*``, ``JSESSIONID``).
+    """
     needs_cookies = bool(cookie_fields or cookie_prefixes)
     if not local_storage_fields and not needs_cookies:
         raise ValueError("At least one of local_storage_fields, cookie_fields, or cookie_prefixes must be provided.")
 
-    # Build JavaScript that collects all requested values and returns JSON
+    # ── Step 1: find matching tab URL (and optionally localStorage) via AppleScript ──
     if local_storage_fields:
-        pairs = ", ".join([f'\\\\"{f}\\\\": localStorage.getItem(\\\\"{f}\\\\")' for f in local_storage_fields])
+        pairs = ", ".join([f"'{f}': localStorage.getItem('{f}')" for f in local_storage_fields])
         ls_js = f"var ls = {{{pairs}}};"
     else:
         ls_js = "var ls = {};"
 
-    if needs_cookies:
-        # Parse all document.cookie entries into a lookup object
-        cookie_js = (
-            "var _cookies = {};"
-            "document.cookie.split(';').forEach(function(c) {"
-            "  var p = c.trim().split('=');"
-            "  var k = p[0]; var v = decodeURIComponent(p.slice(1).join('='));"
-            "  _cookies[k] = v;"
-            "});"
-            "var ck = {};"
-        )
-        # Exact-match fields
-        if cookie_fields:
-            for f in cookie_fields:
-                cookie_js += f'if(_cookies[\\\\"{f}\\\\"])ck[\\\\"{f}\\\\"]=_cookies[\\\\"{f}\\\\"];'
-        # Prefix-match fields: collect all cookies whose name starts with the prefix
-        if cookie_prefixes:
-            prefixes_json = ",".join([f'\\\\"{p}\\\\"' for p in cookie_prefixes])
-            cookie_js += (
-                f"var _prefixes=[{prefixes_json}];"
-                "Object.keys(_cookies).forEach(function(k){"
-                "_prefixes.forEach(function(px){"
-                "if(k.indexOf(px)===0)ck[k]=_cookies[k];"
-                "});"
-                "});"
-            )
-    else:
-        cookie_js = "var ck = {};"
+    js_snippet = f"{ls_js} JSON.stringify({{ls: ls}});"
 
-    js_snippet = f"{ls_js} {cookie_js} JSON.stringify({{ls: ls, ck: ck}});"
-
-    applescript = f'''
+    applescript = f"""
     tell application "Google Chrome"
         set foundInfo to "NOT_FOUND"
         repeat with w in windows
@@ -120,7 +100,7 @@ def _get_session_info_applescript(
                 if currentURL contains "{target_domain}" then
                     set jsResult to execute t javascript "{js_snippet}"
                     if jsResult is not missing value and jsResult is not "" then
-                        set foundInfo to jsResult & "|" & currentURL
+                        set foundInfo to jsResult & "||URL||" & currentURL
                         exit repeat
                     end if
                 end if
@@ -129,7 +109,7 @@ def _get_session_info_applescript(
         end repeat
         return foundInfo
     end tell
-    '''
+    """
 
     try:
         result = subprocess.run(["osascript", "-e", applescript], capture_output=True, text=True)
@@ -151,22 +131,28 @@ def _get_session_info_applescript(
                 "Please make sure you are logged in on that tab in Chrome."
             )
 
-        json_part, tab_url = output.split("|", 1)
+        json_part, tab_url = output.split("||URL||", 1)
         data = json.loads(json_part)
 
-        # Determine base_url from tab_url
         parsed = urlparse(tab_url)
         scheme = parsed.scheme or "https"
         netloc = parsed.netloc
         base_url = f"{scheme}://{netloc}"
 
         session_info = SessionInfo(base_url=base_url, tab_url=tab_url)
+
         if local_storage_fields:
             session_info.local_storage = {
                 k: (v.strip('"') if isinstance(v, str) else v) for k, v in data.get("ls", {}).items()
             }
+
+        # ── Step 2: collect cookies via browser_cookie3 (includes HttpOnly) ──
         if needs_cookies:
-            session_info.cookies = data.get("ck", {})
+            session_info.cookies = collect_cookies_from_db(
+                domain=netloc,
+                cookie_fields=cookie_fields,
+                cookie_prefixes=cookie_prefixes,
+            )
 
         return session_info
 

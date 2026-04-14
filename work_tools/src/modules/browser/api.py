@@ -5,6 +5,7 @@ import sys
 
 import click
 from core import setup
+
 from modules.browser.session import get_session_info
 from modules.browser.session_cdp import DEFAULT_CDP_PORT
 
