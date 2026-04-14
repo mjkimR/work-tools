@@ -7,9 +7,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ImsSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
     domain: str = Field(
-        default="/support-ai",
+        default="https://developer.",
         validation_alias="IMS_DOMAIN",
         description="Domain to identify IMS sessions in the browser",
+    )
+    base_url_suffix: str = Field(
+        default="/support-ai",
+        validation_alias="IMS_BASE_URL_SUFFIX",
+        description="Path suffix appended to the discovered base URL for API requests (e.g. /api/v1)",
     )
     cookie_fields: list[str] = Field(
         default=[

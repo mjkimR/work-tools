@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from core.exception import TokenExpiredError
+
 from modules.browser.api_client import AuthMode, BrowserTokenBaseClient
 from modules.ims.config import ImsSettings, get_ims_settings
 from modules.ims.parser import ImsDocument, ImsDocumentParser
@@ -25,10 +27,11 @@ class ImsClient(BrowserTokenBaseClient):
         """
         self.settings: ImsSettings = settings or get_ims_settings()
         self.parser = ImsDocumentParser()
-        self.util = ImsUtils(base_url=self.base_url, settings=self.settings)
 
         # BrowserTokenBaseClient.__init__ discovers the session and creates self.http
         super().__init__()
+
+        self.util = ImsUtils(base_url=self.base_url, settings=self.settings)
 
     # ── BrowserTokenBaseClient configuration ────────────────────────────
 
@@ -53,6 +56,10 @@ class ImsClient(BrowserTokenBaseClient):
         # WordPress may redirect to login (302) or return 403
         return {401, 403}
 
+    @property
+    def base_url_suffix(self) -> str:
+        return self.settings.base_url_suffix
+
     # ── API methods ─────────────────────────────────────────────────────
 
     def get_document(self, uid: str) -> ImsDocument:
@@ -65,12 +72,24 @@ class ImsClient(BrowserTokenBaseClient):
             Parsed ``ImsDocument`` dataclass.
 
         Raises:
+            TokenExpiredError: If the server returns a login-required page,
+                indicating that the session cookies are missing or expired.
             httpx.HTTPStatusError: If the request fails with a non-2xx status.
-            ValueError: If the page HTML cannot be parsed (e.g. login required).
+            ValueError: If the page HTML cannot be parsed for other reasons.
         """
         response = self.get("/", params={"uid": uid, "mod": "document"})
         response.raise_for_status()
-        return self.parser.parse(response.text)
+        try:
+            return self.parser.parse(response.text)
+        except PermissionError as exc:
+            msg = (
+                f"IMS authentication failed while fetching document '{uid}'.\n"
+                f"  -> The session cookies for '{self.domain}' may be missing or expired.\n"
+                f"  -> Required cookies: PHPSESSID, JSESSIONID, wordpress_logged_in_*\n"
+                f"  -> Please log in to the IMS site in Chrome and retry.\n"
+                f"  -> Detail: {exc}"
+            )
+            raise TokenExpiredError(msg) from exc
 
     def get_documents(self, uids: list[str]) -> list[ImsDocument]:
         """Fetch and parse multiple IMS documents.

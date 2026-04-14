@@ -45,12 +45,109 @@ class ImsDocument:
     attachments: list[ImsAttachment] = field(default_factory=list)
     comments: list[ImsComment] = field(default_factory=list)
 
+    def __str__(self) -> str:
+        """Return a structured plain-text representation optimised for LLM consumption.
+
+        Layout
+        ------
+        [DOCUMENT]
+          uid / project / title / author / date / views
+
+        [ATTRIBUTES]
+          key: value pairs from ext-field-option (category, status, assignee, …)
+
+        [CONTENT]
+          Plain-text body extracted from the document
+
+        [ATTACHMENTS]
+          filename | size | download_url  (one line per file)
+
+        [COMMENTS]
+          author | date
+          <comment body>
+        """
+        lines: list[str] = [
+            "[DOCUMENT]",
+            f"  uid     : {self.uid}",
+            f"  project : {self.project}",
+            f"  title   : {self.title}",
+            f"  author  : {self.author}",
+            f"  date    : {self.created_at}",
+            f"  views   : {self.view_count}",
+            "",
+            "[ATTRIBUTES]",
+        ]
+
+        # ── Extra attributes ─────────────────────────────────────────────
+        if self.attrs:
+            for key, val in self.attrs.items():
+                lines.append(f"  {key}: {val}")
+        else:
+            lines.append("  (none)")
+
+        # ── Content ──────────────────────────────────────────────────────
+        lines.append("")
+        lines.append("[CONTENT]")
+        if self.content_text:
+            for line in self.content_text.splitlines():
+                lines.append(f"  {line}")
+        else:
+            lines.append("  (empty)")
+
+        # ── Attachments ──────────────────────────────────────────────────
+        lines.append("")
+        lines.append("[ATTACHMENTS]")
+        if self.attachments:
+            for i, att in enumerate(self.attachments, 1):
+                lines.append(f"  {i}. filename={att.filename} | size={att.size} | url={att.download_url}")
+        else:
+            lines.append("  (none)")
+
+        # ── Comments ─────────────────────────────────────────────────────
+        lines.append("")
+        lines.append("[COMMENTS]")
+        if self.comments:
+            for i, c in enumerate(self.comments, 1):
+                lines.append(f"  {i}. author={c.author} | date={c.date}")
+                for cline in c.content.splitlines():
+                    lines.append(f"     {cline}")
+        else:
+            lines.append("  (none)")
+
+        return "\n".join(lines)
+
 
 class ImsDocumentParser:
     """KBoard document detail page HTML parser."""
 
+    # ── Login-wall detection ─────────────────────────────────────────────
+
+    _LOGIN_SIGNALS = [
+        # Lock icon + 로그인 required message rendered by cosmosfarm-members
+        lambda soup: soup.select_one("i.fa.fa-lock") is not None,
+        # Explicit login link that redirects back to the document (e.g. ?redirect_to=…uid=…)
+        lambda soup: any(
+            "redirect_to" in (a.get("href") or "") and "/login" in (a.get("href") or "")
+            for a in soup.select("a[href*='/login']")
+        ),
+        # is_user_logged_in is empty string → anonymous visitor
+        lambda soup: 'is_user_logged_in":""' in soup.decode_contents(),
+    ]
+
+    def _is_login_required(self, soup: BeautifulSoup) -> bool:
+        """Return True if the page is a login-wall rather than the actual document."""
+        return any(signal(soup) for signal in self._LOGIN_SIGNALS)
+
     def parse(self, html: str) -> ImsDocument:
         soup = BeautifulSoup(html, "html.parser")
+
+        if self._is_login_required(soup):
+            raise PermissionError(
+                "IMS returned a login-required page instead of the document. "
+                "Please ensure the browser session is authenticated and that all "
+                "required cookies (PHPSESSID, JSESSIONID, wordpress_logged_in_*) "
+                "are present and not expired."
+            )
 
         wrap = soup.select_one("#kboard-document .kboard-document-wrap")
         if wrap is None:
