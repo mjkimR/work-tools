@@ -57,6 +57,63 @@ CUSTOM_ATTRIBUTE_VALUES = {
     100: {"version": 1, "attributes_values": {"1": "High", "2": "Complete login flow"}},
 }
 
+# IMS 연동 테스트용 데이터
+IMS_FAKE_BASE_URL = "https://ims.example.com"
+IMS_UUID_IN_DESCRIPTION = "aaaa-1111-bbbb-2222"
+IMS_UUID_IN_CUSTOM_ATTR = "cccc-3333-dddd-4444"
+
+USER_STORIES_WITH_IMS = {
+    # description에 IMS URL 포함
+    200: {
+        **_US_TEMPLATE,
+        "id": 200,
+        "ref": 50,
+        "subject": "US with IMS link in description",
+        "description": f"관련 요구사항: {IMS_FAKE_BASE_URL}/support-ai/?uid=8226&uuid={IMS_UUID_IN_DESCRIPTION}",
+    },
+    # custom attribute에 IMS URL 포함
+    201: {
+        **_US_TEMPLATE,
+        "id": 201,
+        "ref": 51,
+        "subject": "US with IMS link in custom attr",
+        "description": "설명 없음",
+    },
+    # IMS URL 없음
+    202: {
+        **_US_TEMPLATE,
+        "id": 202,
+        "ref": 52,
+        "subject": "US with no IMS link",
+        "description": "IMS 링크 없는 유저 스토리",
+    },
+    # description + custom attr 양쪽에 동일 UUID (중복)
+    203: {
+        **_US_TEMPLATE,
+        "id": 203,
+        "ref": 53,
+        "subject": "US with duplicate IMS link",
+        "description": f"기획서: {IMS_FAKE_BASE_URL}/support-ai/?uid=8226&uuid={IMS_UUID_IN_DESCRIPTION}",
+    },
+}
+
+CUSTOM_ATTRIBUTE_VALUES_WITH_IMS = {
+    201: {
+        "version": 1,
+        "attributes_values": {
+            "1": "High",
+            "2": f"IMS 링크: {IMS_FAKE_BASE_URL}/support-ai/?uid=8227&uuid={IMS_UUID_IN_CUSTOM_ATTR}",
+        },
+    },
+    203: {
+        "version": 1,
+        "attributes_values": {
+            "1": "Medium",
+            "2": f"중복 링크: {IMS_FAKE_BASE_URL}/support-ai/?uid=8226&uuid={IMS_UUID_IN_DESCRIPTION}",
+        },
+    },
+}
+
 _task_id_seq = 500
 
 

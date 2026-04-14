@@ -5,8 +5,10 @@ If a signature changes, tests using this fake will break → interface drift det
 """
 
 from modules.ims.parser import ImsDocument, ImsDocumentParser
+from modules.ims.utils import ImsUtils
 
 from tests.fake.data.ims import SAMPLE_DOCUMENT_HTML
+from tests.fake.data.taiga import IMS_FAKE_BASE_URL
 
 # Pre-built documents keyed by UID
 _parser = ImsDocumentParser()
@@ -25,12 +27,16 @@ class FakeImsClient:
 
     def __init__(self):
         self.parser = ImsDocumentParser()
+        self.base_url = IMS_FAKE_BASE_URL
 
         # Mutable store — tests can add/remove entries
         self._documents: dict[str, str] = dict(_DOCUMENTS)
 
         # Call recordings for assertions
         self.posted_comments: list[dict[str, str]] = []
+
+        # ImsUtils — mirrors real ImsClient.util
+        self.util = ImsUtils(base_url=self.base_url)
 
     # ── Helpers for test setup ──────────────────────────────────────────
 

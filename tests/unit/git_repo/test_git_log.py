@@ -1,5 +1,6 @@
 """Tests for GitRepoManager — pure logic (no real git repo needed)."""
 
+from unittest.mock import MagicMock
 
 from modules.git_repo.git_log import GitRepoManager
 
@@ -42,7 +43,10 @@ class TestGetCommitStyleGuide:
     """commit_style.md loading."""
 
     def test_returns_non_empty_string(self):
-        guide = GitRepoManager.get_commit_style_guide()
+        settings = MagicMock()
+        settings.lang = "kr"
+        manager = GitRepoManager(settings=settings)
+        guide = manager.get_commit_style_guide()
         assert isinstance(guide, str)
         assert len(guide) > 0
         assert "Conventional Commits" in guide
