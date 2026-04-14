@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "browser-cookie3>=0.20.1",
     "click>=8.3.2",
     "dotenv>=0.9.9",
     "gitpython>=3.1.46",
@@ -14,10 +15,12 @@ dependencies = [
     "pydantic-settings>=2.13.1",
     "pyyaml>=6.0",
     "requests",
+    "slack-sdk>=3.41.0",
     "websockets>=15.0",
 ]
 
 [project.scripts]
+ims-cli = "modules.ims.api:main"
 taiga-cli = "modules.taiga.api:main"
 git-cli = "modules.git_repo.api:main"
 docs-cli = "modules.docs.api:main"
