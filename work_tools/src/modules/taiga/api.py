@@ -2,6 +2,7 @@ import sys
 
 import click
 from core import setup
+
 from modules.taiga.handler import TaigaCLIHandlers
 
 
@@ -22,11 +23,11 @@ def cli():
 
 # ── Projects ──────────────────────────────────────────────────────────────────
 
-
-@cli.command("list-projects")
-def list_projects():
-    """List all projects"""
-    get_handlers().list_projects()
+# Disabled (not needed for AI agent, just use environment variable for project ID)
+# @cli.command("list-projects")
+# def list_projects():
+#     """List all projects"""
+#     get_handlers().list_projects()
 
 
 # ── User Stories ──────────────────────────────────────────────────────────────

@@ -62,6 +62,8 @@ class TaigaCLIHandlers:
         us_id = self._resolve_us_id(id=id, ref=ref)
         us = self.client.get_user_story(us_id)
         print(f"ID: {us['id']} | Ref: #{us['ref']} | Subject: {us['subject']}")
+        print(f"Status: {us['status_extra_info']['name']} (ID: {us['status']})")
+        print(f"Description: {us.get('description', '')}")
         assigned = us.get("assigned_to_extra_info")
         print(f"Assignee: {assigned['full_name_display'] if assigned else 'Unassigned'}")
         print(f"Version: {us['version']}")
