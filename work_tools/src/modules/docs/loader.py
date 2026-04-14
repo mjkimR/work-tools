@@ -6,8 +6,9 @@ import importlib
 import os
 
 import yaml
-from modules.docs.config import DocsSettings, get_docs_settings
 from pydantic import BaseModel
+
+from modules.docs.config import DocsSettings, get_docs_settings
 
 # ── Manifest Schema ──────────────────────────────────────────────────────────
 
@@ -132,15 +133,15 @@ class DocsLoader:
         return sections
 
     def _collect_env_vars(self, keys: list[str]) -> str:
-        """Collect environment variables into a Markdown table."""
-        lines = ["## 🔧 Environment", "", "| Variable | Value |", "|----------|-------|"]
+        """Collect environment variables into a Markdown list."""
+        lines = ["## 🔧 Environment", ""]
         for key in keys:
             value = os.environ.get(key)
             if value is None:
-                lines.append(f"| `{key}` | `<NOT SET>` |")
+                lines.append(f"- `{key}`: `<NOT SET>`")
             else:
                 masked = _mask_value(key, value)
-                lines.append(f"| `{key}` | `{masked}` |")
+                lines.append(f"- `{key}`: `{masked}`")
         return "\n".join(lines)
 
     def _run_generators(self, callables: list[str]) -> list[str]:

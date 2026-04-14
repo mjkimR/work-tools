@@ -68,9 +68,9 @@ class TestDocsLoader:
         assert "⚠️ File not found" in result
 
         # Environment checking
-        assert "`TEST_VAR` | `visible_value`" in result
-        assert "`TEST_SECRET_KEY` | `su***et`" in result
-        assert "`MISSING_VAR` | `<NOT SET>`" in result
+        assert "`TEST_VAR`: `visible_value`" in result
+        assert "`TEST_SECRET_KEY`: `su***et`" in result
+        assert "`MISSING_VAR`: `<NOT SET>`" in result
 
         # Generator checking
         assert "## ⚙️ Dynamic: tests.unit.docs.test_loader:dummy_generator" in result

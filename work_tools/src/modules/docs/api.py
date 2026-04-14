@@ -2,6 +2,7 @@ import sys
 
 import click
 from core import setup
+
 from modules.docs.handler import DocsCLIHandlers
 from modules.docs.loader import DocsLoader
 

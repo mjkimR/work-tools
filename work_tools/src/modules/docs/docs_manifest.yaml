@@ -8,7 +8,6 @@
 #   env_vars      : list of environment variable keys to include (shows <NOT SET> if missing)
 #   generators    : list of Python dotted paths for dynamic data generators
 #                   format: "module.path:callable_name"  — callable is () -> str
-# ─────────────────────────────────────────────────────────────────────────────
 
 subjects:
   task-writer:
@@ -19,9 +18,9 @@ subjects:
       - feature_guideline.md
       - future_task_guideline.md
       - issue_guideline.md
-    env_vars:
-      - TAIGA_PROJECT_ID
-    generators: [ ] # TODO: show custom attributes ID list
+    env_vars: [ ]
+    generators:
+      - "scripts.taiga_custom_attrs:generate_custom_attributes"
 
   api-reference:
     description: "API specification reference for CLI tools."
