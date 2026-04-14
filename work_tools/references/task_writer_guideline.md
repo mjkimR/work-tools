@@ -6,6 +6,10 @@ Detailed instructions for managing Taiga user stories and tasks via CLI.
 
 ## 1. Guideline Routing
 
+> **Project is pre-configured via environment variable.**
+> The target Taiga project is already set through an environment variable and is used as-is by the CLI.
+> **Do NOT query, list, or confirm the project** — never run commands like `list-projects` or similar. Just proceed directly with the task.
+
 > Authentication is handled automatically — the CLI reads the Taiga token directly from the Chrome browser session.
 
 Choose the appropriate guideline based on the nature of the request:
@@ -99,30 +103,7 @@ taiga-cli create-task --us-ref <US_REF> --tasks "Task 1" "Task 2"
 
 ---
 
-## 4. Custom Attributes
-
-Each User Story supports project-level custom attribute fields.
-
-Refer to the attribute IDs suggested in the chosen guideline (e.g. `**Feature Detail (ID: 8)**`).
-
-```bash
-# List available attributes
-taiga-cli list-custom-attributes
-
-# Read current values
-taiga-cli get-custom-attr-values --ref <REF>
-taiga-cli get-custom-attr-values --id <US_ID>
-
-# Update values (multiple at once)
-taiga-cli update-custom-attr-values --ref <REF> --values-json '{"<ATTR_ID>": "value", "<ATTR_ID2>": "value2"}'
-```
-
-> `create-userstory` does not support custom attributes directly.
-> Set them with a separate `update-custom-attr-values` call after creation.
-
----
-
-## 5. Example Flows
+## 4. Example Flows
 
 | User request                                                                     | Action                                                                                               |
 |----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|

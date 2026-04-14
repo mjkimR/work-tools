@@ -203,16 +203,21 @@ class GitRepoManager:
         result = self._run_git("diff", "--cached")
         return result.stdout.strip()
 
-    def get_recent_logs(self, count: int = 10) -> str:
+    def get_recent_logs(self, count: int = 10, since: str | None = None) -> str:
         """Return recent commit subjects as a newline-separated list.
 
         Args:
-            count: Number of recent commits to retrieve.
+            count: Number of recent commits to retrieve (ignored when *since* is set).
+            since: If provided, return all commits in ``since..HEAD`` instead of
+                the last *count* commits.
 
         Returns:
             Formatted string of recent commit subjects prefixed with ``-``.
         """
-        result = self._run_git("log", f"-n{count}", "--pretty=format:- %s")
+        if since:
+            result = self._run_git("log", f"{since}..HEAD", "--pretty=format:- %s")
+        else:
+            result = self._run_git("log", f"-n{count}", "--pretty=format:- %s")
         return result.stdout.strip()
 
     def get_commit_style_guide(self) -> str:
@@ -224,3 +229,99 @@ class GitRepoManager:
         style_path = pathlib.Path(__file__).parent / "commit_style.md"
         content = style_path.read_text(encoding="utf-8")
         return content.replace("{lang}", self.settings.lang)
+
+    # ── Branch helpers ──────────────────────────────────────────────────
+
+    def get_current_branch(self) -> str:
+        """Return the name of the currently checked-out branch.
+
+        Returns:
+            Branch name string (e.g. ``f/my-feature``).
+
+        Raises:
+            RuntimeError: If the git command fails.
+        """
+        result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
+        return result.stdout.strip()
+
+    def is_feature_branch(self) -> bool:
+        """Return True if the current branch starts with ``f/``.
+
+        Returns:
+            ``True`` when on a feature branch, ``False`` otherwise.
+        """
+        return self.get_current_branch().startswith("f/")
+
+    def get_feature_base_commit(self) -> str:
+        """Find the merge-base commit between HEAD and the main base branch.
+
+        Tries local and remote-tracking refs for ``main``, ``master``, and ``dev``
+        in order, picking the **most recent** (closest to HEAD) merge-base among
+        all candidates so that stale local refs do not push the divergence point
+        further back than expected.
+
+        Returns:
+            The merge-base commit SHA string.
+
+        Raises:
+            RuntimeError: If no valid base ref is found, or if the git command fails.
+        """
+        candidates = [ref for name in ("main", "master", "dev") for ref in (name, f"origin/{name}")]
+
+        merge_bases: list[str] = []
+        for ref in candidates:
+            verify = subprocess.run(
+                ["git", "-C", self.repo_path, "rev-parse", "--verify", ref],
+                capture_output=True,
+                text=True,
+            )
+            if verify.returncode != 0:
+                continue
+            mb = subprocess.run(
+                ["git", "-C", self.repo_path, "merge-base", "HEAD", ref],
+                capture_output=True,
+                text=True,
+            )
+            if mb.returncode == 0 and mb.stdout.strip():
+                merge_bases.append(mb.stdout.strip())
+
+        if not merge_bases:
+            raise RuntimeError("Cannot detect base branch: none of main/master/dev (local or origin) found.")
+
+        if len(merge_bases) == 1:
+            return merge_bases[0]
+
+        # Among all candidates pick the most recent merge-base (closest to HEAD).
+        # Walk commits reachable from HEAD in topo order and return the first
+        # SHA that appears in our candidate set.
+        result = self._run_git("log", "--topo-order", "--format=%H", "HEAD")
+        ordered = [sha.strip() for sha in result.stdout.splitlines() if sha.strip()]
+        merge_base_set = set(merge_bases)
+        for sha in ordered:
+            if sha in merge_base_set:
+                return sha
+
+        # Fallback: return the first candidate found
+        return merge_bases[0]
+
+    def fetch_feature_branch_commits(self) -> list[dict]:
+        """Fetch commits introduced on the current feature branch.
+
+        Detects the divergence point from the base branch (``main`` / ``master``)
+        and returns all author-filtered commits from that point to ``HEAD``.
+
+        Returns:
+            A list of commit dicts (same schema as :meth:`fetch_commits_with_diff`),
+            each augmented with a ``diff`` key.
+
+        Raises:
+            RuntimeError: If the current branch is not a feature branch (does not
+                start with ``f/``), or if any underlying git command fails.
+        """
+        if not self.is_feature_branch():
+            branch = self.get_current_branch()
+            raise RuntimeError(f"Current branch '{branch}' is not a feature branch (must start with 'f/').")
+
+        base_commit = self.get_feature_base_commit()
+        commit_input = f"{base_commit}..HEAD"
+        return self.fetch_commits_with_diff(commit_input)

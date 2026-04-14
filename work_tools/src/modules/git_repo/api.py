@@ -2,6 +2,7 @@ import sys
 
 import click
 from core import setup
+
 from modules.git_repo.git_log import GitRepoManager
 
 
@@ -21,20 +22,33 @@ def cli():
 
 
 @cli.command("log")
-@click.argument("commit_input")
-def log(commit_input):
+@click.option(
+    "-b", "--branch", "use_branch", is_flag=True, help="Auto-detect feature branch range (f/... → base..HEAD)."
+)
+@click.argument("commit_input", required=False, default=None)
+def log(use_branch, commit_input):
     """Fetch commit logs with diffs.
 
     COMMIT_INPUT formats: <SHA>, <SHA1>..<SHA2>, <SHA>~<N>
+
+    Use --branch to automatically detect the commit range for the current
+    feature branch (must start with 'f/').
     """
     manager = get_manager()
 
     click.echo(f"Repository   : {manager.repo_path}")
     click.echo(f"Author email : {manager.author_email}")
-    click.echo(f"Commit input : {commit_input}")
 
     try:
-        commits = manager.fetch_commits_with_diff(commit_input)
+        if use_branch:
+            branch_name = manager.get_current_branch()
+            click.echo(f"Branch       : {branch_name} (auto-range)")
+            commits = manager.fetch_feature_branch_commits()
+        else:
+            if not commit_input:
+                raise click.UsageError("COMMIT_INPUT is required unless --branch is specified.")
+            click.echo(f"Commit input : {commit_input}")
+            commits = manager.fetch_commits_with_diff(commit_input)
     except RuntimeError as e:
         click.echo(f"[Error] {e}", err=True)
         sys.exit(1)
