@@ -6,22 +6,15 @@ import pytest
 
 
 class TestResolveHelpers:
-    """Tests for _resolve_us_id and _resolve_assigned_to."""
-
-    def test_resolve_us_id_by_id(self, taiga_handlers):
-        assert taiga_handlers._resolve_us_id(id=100) == 100
+    """Tests for _get_id_from_ref and _resolve_assigned_to."""
 
     def test_resolve_us_id_by_ref(self, taiga_handlers):
-        us_id = taiga_handlers._resolve_us_id(ref=42)
+        us_id = taiga_handlers._get_id_from_ref(ref=42)
         assert us_id == 100
-
-    def test_resolve_us_id_missing_both_raises(self, taiga_handlers):
-        with pytest.raises(ValueError, match="Either id or ref"):
-            taiga_handlers._resolve_us_id()
 
     def test_resolve_us_id_invalid_ref_raises(self, taiga_handlers):
         with pytest.raises(ValueError, match="not found"):
-            taiga_handlers._resolve_us_id(ref=9999)
+            taiga_handlers._get_id_from_ref(ref=9999)
 
     def test_resolve_assigned_to_me(self, taiga_handlers):
         result = taiga_handlers._resolve_assigned_to(me=True)
@@ -34,47 +27,6 @@ class TestResolveHelpers:
     def test_resolve_assigned_to_none(self, taiga_handlers):
         result = taiga_handlers._resolve_assigned_to()
         assert result is None
-
-
-class TestListAndSearch:
-    """Tests for list/search commands."""
-
-    def test_list_projects(self, taiga_handlers, capsys):
-        taiga_handlers.list_projects()
-        out = capsys.readouterr().out
-        assert "Test Project" in out
-        assert "Other Project" in out
-
-    def test_search_userstories_all(self, taiga_handlers, capsys):
-        taiga_handlers.search_userstories()
-        out = capsys.readouterr().out
-        assert "login" in out.lower()
-
-    def test_search_userstories_with_query(self, taiga_handlers, capsys):
-        taiga_handlers.search_userstories(query="bug")
-        out = capsys.readouterr().out
-        assert "dashboard" in out.lower()
-        assert "login" not in out.lower()
-
-    def test_search_userstories_no_results(self, taiga_handlers, capsys):
-        taiga_handlers.search_userstories(query="nonexistent_xyz")
-        out = capsys.readouterr().out
-        assert "No results" in out
-
-
-class TestGetUserstory:
-    """Tests for get_userstory."""
-
-    def test_get_userstory_by_id(self, taiga_handlers, capsys):
-        taiga_handlers.get_userstory(id=100)
-        out = capsys.readouterr().out
-        assert "Implement login feature" in out
-        assert "Ref: #42" in out
-
-    def test_get_userstory_by_ref(self, taiga_handlers, capsys):
-        taiga_handlers.get_userstory(ref=43)
-        out = capsys.readouterr().out
-        assert "Fix dashboard bug" in out
 
 
 class TestCreateUserstory:
@@ -120,64 +72,38 @@ class TestCreateTask:
     """Tests for create_task."""
 
     def test_create_single_task(self, taiga_handlers, fake_taiga_client, capsys):
-        taiga_handlers.create_task(subject="Standalone task")
+        taiga_handlers.create_task(us_ref=42, subject="Standalone task")
         assert len(fake_taiga_client.created_tasks) == 1
         out = capsys.readouterr().out
         assert "Task created" in out
 
     def test_create_task_linked_to_us(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.create_task(subject="Linked task", us=100)
+        taiga_handlers.create_task(us_ref=42, subject="Linked task")
         task = fake_taiga_client.created_tasks[0]
         assert task["user_story"] == 100
 
     def test_create_task_linked_by_ref(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.create_task(subject="Linked by ref", us_ref=42)
+        taiga_handlers.create_task(us_ref=42, subject="Linked by ref")
         task = fake_taiga_client.created_tasks[0]
         assert task["user_story"] == 100  # ref 42 → id 100
 
     def test_create_multiple_tasks(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.create_task(tasks=["T1", "T2"])
+        taiga_handlers.create_task(us_ref=42, tasks=["T1", "T2"])
         assert len(fake_taiga_client.created_tasks) == 2
 
     def test_create_task_no_input_raises(self, taiga_handlers):
         with pytest.raises(ValueError, match="At least one"):
-            taiga_handlers.create_task()
+            taiga_handlers.create_task(us_ref=42)
 
 
 class TestUpdateUserstory:
     """Tests for update_userstory."""
 
     def test_update_subject(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.update_userstory(id=100, subject="Updated title")
+        taiga_handlers.update_userstory(ref=42, subject="Updated title")
         assert len(fake_taiga_client.updated_stories) == 1
         assert fake_taiga_client.updated_stories[0]["subject"] == "Updated title"
 
     def test_update_with_me(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.update_userstory(id=100, me=True)
+        taiga_handlers.update_userstory(ref=42, me=True)
         assert fake_taiga_client.updated_stories[0]["assigned_to"] == 10
-
-
-class TestCustomAttributes:
-    """Tests for custom attribute commands."""
-
-    def test_list_custom_attributes(self, taiga_handlers, capsys):
-        taiga_handlers.list_custom_attributes()
-        out = capsys.readouterr().out
-        assert "Priority" in out
-        assert "Sprint-Goal" in out
-        assert "TAIGA_CA_" in out
-
-    def test_get_custom_attr_values(self, taiga_handlers, capsys):
-        taiga_handlers.get_custom_attr_values(id=100)
-        out = capsys.readouterr().out
-        assert "High" in out
-
-    def test_update_custom_attr_values(self, taiga_handlers, fake_taiga_client, capsys):
-        values_json = json.dumps({"1": "Low", "2": "New goal"})
-        taiga_handlers.update_custom_attr_values(values_json, id=100)
-        assert len(fake_taiga_client.updated_ca_values) == 1
-        assert fake_taiga_client.updated_ca_values[0]["attributes_values"]["1"] == "Low"
-
-    def test_update_custom_attr_values_bad_json(self, taiga_handlers):
-        with pytest.raises(ValueError, match="Error parsing"):
-            taiga_handlers.update_custom_attr_values("{bad json", id=100)

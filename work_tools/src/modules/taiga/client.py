@@ -219,3 +219,74 @@ class TaigaClient(BrowserTokenBaseClient):
         response = self.post("/tasks", json=data)
         self._raise_for_status(response)
         return response.json()
+
+    def get_tasks_by_userstory(self, us_id: int) -> list[dict]:
+        """Fetch all tasks linked to a specific user story.
+
+        Args:
+            us_id: The user story ID whose tasks to fetch.
+
+        Returns:
+            List of task dicts.
+        """
+        response = self.get("/tasks", params={"user_story": us_id, "project": self.project_id})
+        self._raise_for_status(response)
+        return response.json()
+
+    def get_userstory_comments(self, us_id: int) -> list[dict]:
+        """Fetch comment history for a specific user story.
+
+        Args:
+            us_id: The user story ID whose comment history to fetch.
+
+        Returns:
+            List of history entry dicts that contain comments.
+        """
+        response = self.get(f"/history/userstory/{us_id}")
+        self._raise_for_status(response)
+        entries = response.json()
+        return [e for e in entries if e.get("comment")]
+
+    # ── Task API methods ────────────────────────────────────────────────
+
+    def get_task(self, task_id):
+        """Fetch a single task by its internal ID."""
+        response = self.get(f"/tasks/{task_id}")
+        self._raise_for_status(response)
+        return response.json()
+
+    def get_task_by_ref(self, ref):
+        """Fetch a single task by its reference number within the project."""
+        params = {"ref": ref, "project": self.project_id}
+        response = self.get("/tasks/by_ref", params=params)
+        self._raise_for_status(response)
+        return response.json()
+
+    def update_task(self, task_id, subject=None, description=None, status=None, assigned_to=None, version=None):
+        """Update fields of an existing task.
+
+        Args:
+            task_id: The task ID to update.
+            subject: New title for the task.
+            description: New description for the task.
+            status: New status ID.
+            assigned_to: New assignee user ID.
+            version: Optimistic locking version; fetched automatically if not provided.
+        """
+        if version is None:
+            current = self.get_task(task_id)
+            version = current["version"]
+
+        data = {"version": version}
+        if subject is not None:
+            data["subject"] = subject
+        if description is not None:
+            data["description"] = description
+        if status is not None:
+            data["status"] = status
+        if assigned_to is not None:
+            data["assigned_to"] = assigned_to
+
+        response = self.patch(f"/tasks/{task_id}", json=data)
+        self._raise_for_status(response)
+        return response.json()

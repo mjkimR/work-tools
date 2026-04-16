@@ -4,34 +4,16 @@ from modules.taiga.client import TaigaClient
 
 
 class TaigaCLIHandlers:
-    """CLI command handlers that bridge Click commands to TaigaClient API calls.
-
-    Each public method corresponds to a CLI subcommand and handles
-    argument resolution, API interaction, and output formatting.
-    """
-
     def __init__(self):
-        """Initialize handlers with a TaigaClient instance."""
         self.client = TaigaClient()
 
-    # ── Common Helpers ───────────────────────────────────────────────────────
-
-    def _resolve_us_id(
-        self,
-        id=None,
-        ref=None,
-    ) -> int:
-        """Resolve a user story's internal ID from either an ID or a ref number."""
-        if id is not None:
-            return id
-        if ref is None:
-            raise ValueError("Either id or ref must be provided")
+    # ── Internal Helpers ─────────────────────────────────────────────────────
+    def _get_id_from_ref(self, ref: int) -> int:
+        """Resolve a user story's internal ID exclusively from a ref number."""
         resolved = self.client.get_user_story_by_ref(ref)
-        print(f"Ref #{ref} → Internal ID: {resolved['id']} ({resolved['subject']})")
         return resolved["id"]
 
     def _resolve_assigned_to(self, me=False, assigned_to=None, label="Assigning to") -> int | None:
-        """Resolve the assignee user ID, using the current user if `me` is True."""
         if me:
             user = self.client.get_me()
             print(f"{label}: {user['full_name']} (ID: {user['id']})")
@@ -40,90 +22,94 @@ class TaigaCLIHandlers:
 
     # ── Command Handlers ──────────────────────────────────────────────────────
 
-    def list_projects(self):
-        """List all accessible projects."""
-        projects = self.client.get_projects()
-        for p in projects:
-            print(f"ID: {p['id']} | Name: {p['name']} | Slug: {p['slug']}")
-
-    def search_userstories(self, query=None, me=False):
-        """Search user stories with optional query and assignee filter."""
-        stories = self.client.search_user_stories(query=query, assigned_to_me=me)
-        if not stories:
-            print("No results found.")
-            return
-        for s in stories:
-            assigned = s.get("assigned_to_extra_info")
-            assignee = assigned["full_name_display"] if assigned else "Unassigned"
-            print(f"ID: {s['id']} | Ref: #{s['ref']} | Subject: {s['subject']} | Assignee: {assignee}")
-
-    def get_userstory(self, id=None, ref=None):
-        """Fetch and display a single user story by ID or ref."""
-        us_id = self._resolve_us_id(id=id, ref=ref)
-        us = self.client.get_user_story(us_id)
-        print(f"ID: {us['id']} | Ref: #{us['ref']} | Subject: {us['subject']}")
-        print(f"Status: {us['status_extra_info']['name']} (ID: {us['status']})")
-        print(f"Description: {us.get('description', '')}")
-        assigned = us.get("assigned_to_extra_info")
-        print(f"Assignee: {assigned['full_name_display'] if assigned else 'Unassigned'}")
-        print(f"Version: {us['version']}")
-        print(f"URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
-
-    def update_userstory(
-        self, id=None, ref=None, project=None, subject=None, description=None, status=None, me=False, assigned_to=None
+    def create_userstory(
+        self,
+        subject,
+        description="",
+        status=None,
+        tasks=None,
+        tasks_json=None,
+        custom_attrs_json=None,
+        me=False,
+        assigned_to=None,
     ):
-        """Update an existing user story's fields."""
-        us_id = self._resolve_us_id(id=id, ref=ref)
-        resolved_assigned = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
-        us = self.client.update_user_story(
-            us_id,
-            subject=subject,
-            description=description,
-            status=status,
-            assigned_to=resolved_assigned,
+        """Unified creation: Core US + Custom Attributes + Tasks"""
+        resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
+
+        # 1. Create Core User Story
+        us = self.client.create_user_story(
+            subject=subject, description=description, status=status, assigned_to=resolved_assignee
         )
-        print(f"User Story updated: {us['id']} - {us['subject']}")
-        print(f"US URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
+        us_id = us["id"]
+        print(f"✅ User Story created: #{us['ref']} - {us['subject']}")
+        print(f"   URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
 
-    def create_userstory(self, subject, description="", tasks=None, tasks_json=None, me=False):
-        """Create a new user story, optionally with associated tasks."""
-        assigned_to = self._resolve_assigned_to(me=me)
-        us = self.client.create_user_story(subject, description, assigned_to=assigned_to)
-        print(f"User Story created: {us['id']} - {us['subject']}")
-        print(f"US URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
+        # 2. Update Custom Attributes if provided
+        if custom_attrs_json:
+            try:
+                attrs_dict = json.loads(custom_attrs_json)
+                self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
+                print("   Custom attributes applied.")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Failed to parse custom_attrs_json: {e}")
 
+        # 3. Create Tasks if provided
         tasks_to_create = []
         if tasks_json:
             try:
                 tasks_to_create = json.loads(tasks_json)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Error parsing --tasks-json: {e}") from e
+                print(f"⚠️ Failed to parse tasks_json: {e}")
         elif tasks:
             tasks_to_create = [{"subject": t, "description": ""} for t in tasks]
 
         for task_data in tasks_to_create:
             task = self.client.create_task(
-                task_data["subject"],
+                subject=task_data["subject"],
                 description=task_data.get("description", ""),
-                user_story=us["id"],
-                assigned_to=assigned_to,
+                user_story=us_id,
+                assigned_to=resolved_assignee,
             )
-            print(f"  - Task created: {task['id']} - {task['subject']}")
+            print(f"   ↳ Task created: #{task['ref']} - {task['subject']}")
 
-    def create_task(self, subject=None, description="", tasks=None, tasks_json=None, us=None, us_ref=None, me=False):
-        """Create one or more tasks, optionally linked to a user story."""
-        assigned_to = self._resolve_assigned_to(me=me, label="Assigning task(s) to")
+    def update_userstory(
+        self, ref, subject=None, description=None, status=None, custom_attrs_json=None, me=False, assigned_to=None
+    ):
+        """Unified update: Core US fields and Custom Attributes via #ref"""
+        us_id = self._get_id_from_ref(ref)
+        resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
 
-        us_id = None
-        if us is not None or us_ref is not None:
-            us_id = self._resolve_us_id(id=us, ref=us_ref)
+        # 1. Update Core Fields (only if at least one field is provided)
+        if any(v is not None for v in [subject, description, status, resolved_assignee]):
+            us = self.client.update_user_story(
+                us_id,
+                subject=subject,
+                description=description,
+                status=status,
+                assigned_to=resolved_assignee,
+            )
+            print(f"✅ User Story #{us['ref']} updated.")
+
+        # 2. Update Custom Attributes
+        if custom_attrs_json:
+            try:
+                attrs_dict = json.loads(custom_attrs_json)
+                self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
+                print(f"   Custom attributes updated for #{ref}.")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Failed to parse custom_attrs_json: {e}")
+
+    def create_task(self, us_ref, subject=None, description="", tasks=None, tasks_json=None, me=False):
+        """Create tasks linked to a US via #ref"""
+        us_id = self._get_id_from_ref(us_ref)
+        resolved_assignee = self._resolve_assigned_to(me=me, label="Assigning task(s) to")
 
         tasks_to_create = []
         if tasks_json:
             try:
                 tasks_to_create = json.loads(tasks_json)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Error parsing --tasks-json: {e}") from e
+                raise ValueError(f"Error parsing tasks_json: {e}") from e
         elif tasks:
             tasks_to_create = [{"subject": t, "description": ""} for t in tasks]
         elif subject:
@@ -133,49 +119,36 @@ class TaigaCLIHandlers:
 
         for task_data in tasks_to_create:
             task = self.client.create_task(
-                task_data["subject"],
+                subject=task_data["subject"],
                 description=task_data.get("description", ""),
-                assigned_to=assigned_to,
+                assigned_to=resolved_assignee,
                 user_story=us_id,
             )
-            print(f"Task created: {task['id']} - {task['subject']}")
-            if task.get("user_story"):
-                print(f"  Linked to US ID: {task['user_story']}")
-            print(f"  URL: https://tree.taiga.io/project/{task['project_extra_info']['slug']}/task/{task['ref']}")
+            print(f"✅ Task created: #{task['ref']} - {task['subject']} (Linked to US #{us_ref})")
 
-    def list_custom_attributes(self):
-        """List all custom attribute definitions for user stories."""
-        attrs = self.client.get_userstory_custom_attributes()
-        if not attrs:
-            print("No custom attributes found.")
+    # ── Internal Helpers ────────────────────────────────────────────────
+
+    def _get_task_id_from_ref(self, ref: int) -> int:
+        """Resolve a task's internal ID exclusively from a ref number."""
+        resolved = self.client.get_task_by_ref(ref)
+        return resolved["id"]
+
+    # ── Command Handlers ───────────────────────────────────────────────
+
+    def update_task(self, ref, subject=None, description=None, status=None, me=False, assigned_to=None):
+        """Update an existing Task's fields via #ref"""
+        task_id = self._get_task_id_from_ref(ref)
+        resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
+
+        if any(v is not None for v in [subject, description, status, resolved_assignee]):
+            task = self.client.update_task(
+                task_id=task_id,
+                subject=subject,
+                description=description,
+                status=status,
+                assigned_to=resolved_assignee,
+            )
+            print(f"✅ Task #{task['ref']} updated: {task['subject']}")
+            print(f"   URL: https://tree.taiga.io/project/{task['project_extra_info']['slug']}/task/{task['ref']}")
         else:
-            for attr in attrs:
-                env_key = "TAIGA_CA_" + attr["name"].upper().replace(" ", "_").replace("-", "_")
-                print(f"ID: {attr['id']} | Name: {attr['name']} | Type: {attr['type']} | Env: {env_key}")
-
-    def get_custom_attr_values(self, id=None, ref=None):
-        """Fetch and display custom attribute values for a user story."""
-        us_id = self._resolve_us_id(id=id, ref=ref)
-        attr_map = {}
-        for attr in self.client.get_userstory_custom_attributes():
-            attr_map[str(attr["id"])] = attr["name"]
-        result = self.client.get_userstory_custom_attribute_values(us_id)
-        values = result.get("attributes_values", {})
-        if not values:
-            print("No custom attribute values set.")
-        else:
-            for attr_id, value in values.items():
-                name = attr_map.get(str(attr_id), f"ID:{attr_id}")
-                print(f"  {name} (ID: {attr_id}): {value}")
-
-    def update_custom_attr_values(self, values_json, id=None, ref=None):
-        """Update custom attribute values for a user story from a JSON string."""
-        us_id = self._resolve_us_id(id=id, ref=ref)
-        try:
-            values_dict = json.loads(values_json)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Error parsing --values-json: {e}") from e
-        result = self.client.update_userstory_custom_attribute_values(us_id, values_dict)
-        print(f"Custom attribute values updated for US ID: {us_id}")
-        for attr_id, value in result.get("attributes_values", {}).items():
-            print(f"  ID {attr_id}: {value}")
+            print("⚠️ No fields provided to update.")
