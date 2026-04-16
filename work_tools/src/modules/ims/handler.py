@@ -25,3 +25,12 @@ class ImsCLIHandlers:
         for doc in docs:
             print(str(doc))
             print()
+
+    def get_document_from_url(self, url: str) -> None:
+        """Fetch and print an IMS document by URL."""
+        doc_id = self.client.util.parse_uuid_from_url(url)
+        if not doc_id:
+            print(f"Error: Could not extract UID from URL: {url}")
+            return
+        doc = self.client.get_document(doc_id)
+        print(str(doc))

@@ -30,9 +30,9 @@ class ImsUtils:
     def parse_uuid_from_url(cls, url: str) -> str | None:
         """Extract UUID from the given IMS URL.
 
-        Parses the uuid value from a query parameter in the form ``?uuid=0000``.
+        Parses the uid value from a query parameter in the form ``?uid=0000``.
         """
-        match = re.search(r"[?&]uuid=([a-fA-F0-9\-]+)", url)
+        match = re.search(r"[?&]uid=([a-fA-F0-9\-]+)", url)
         if match:
             return match.group(1)
         return None

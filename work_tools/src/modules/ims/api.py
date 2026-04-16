@@ -31,6 +31,13 @@ def get_document(uid):
     get_handlers().get_document(uid)
 
 
+@cli.command("get-document-from-url")
+@click.option("--url", required=True, help="Document URL")
+def get_document_from_url(url):
+    """Fetch and display an IMS document by URL"""
+    get_handlers().get_document_from_url(url)
+
+
 @cli.command("get-documents")
 @click.option("--uid", "uids", multiple=True, required=True, help="Document UIDs (repeatable)")
 def get_documents(uids):
