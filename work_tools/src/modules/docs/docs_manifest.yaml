@@ -18,6 +18,7 @@ subjects:
       - feature_guideline.md
       - future_task_guideline.md
       - issue_guideline.md
+      - quick_commands.md
     env_vars: [ ]
     generators:
       - "scripts.taiga_custom_attrs:generate_custom_attributes"
@@ -26,6 +27,6 @@ subjects:
     description: "API specification reference for CLI tools."
     references:
       - api_spec.md
+      - quick_commands.md
     env_vars: [ ]
     generators: [ ] # scripts.api_spec:generate_all
-

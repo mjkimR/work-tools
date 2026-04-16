@@ -179,13 +179,15 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  get-document   Fetch and display an IMS document by UID
-  get-documents  Fetch and display multiple IMS documents
+  get-document           Fetch and display an IMS document by UID
+  get-document-from-url  Fetch and display an IMS document by URL
+  get-documents          Fetch and display multiple IMS documents
 ```
 
 ## Commands
 
 - `get-document`
+- `get-document-from-url`
 - `get-documents`
 
 ---
@@ -199,6 +201,18 @@ Usage: ims-cli get-document [OPTIONS]
 
 Options:
   --uid TEXT  Document UID (numeric string)  [required]
+  --help      Show this message and exit.
+```
+
+### `ims-cli get-document-from-url`
+
+```
+Usage: ims-cli get-document-from-url [OPTIONS]
+
+  Fetch and display an IMS document by URL
+
+Options:
+  --url TEXT  Document URL  [required]
   --help      Show this message and exit.
 ```
 
@@ -227,25 +241,17 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  create-task                Create one or multiple tasks for an existing US
-  create-userstory           Create a User Story (optionally with tasks)
-  get-custom-attr-values     Get custom attribute values for a User Story
-  get-userstory              Get a User Story by ID or #ref number
-  list-custom-attributes     List custom attribute definitions
-  search-userstories         Search user stories by name
-  update-custom-attr-values  Update custom attribute values for a User Story
-  update-userstory           Update an existing User Story
+  create-task       Create one or multiple tasks for an existing US by #ref
+  create-userstory  Create a User Story with tasks and custom attributes...
+  update-task       Update an existing Task's fields by #ref
+  update-userstory  Update an existing User Story's fields and/or custom...
 ```
 
 ## Commands
 
 - `create-task`
 - `create-userstory`
-- `get-custom-attr-values`
-- `get-userstory`
-- `list-custom-attributes`
-- `search-userstories`
-- `update-custom-attr-values`
+- `update-task`
 - `update-userstory`
 
 ---
@@ -255,16 +261,15 @@ Commands:
 ```
 Usage: taiga-cli create-task [OPTIONS]
 
-  Create one or multiple tasks for an existing US
+  Create one or multiple tasks for an existing US by #ref
 
 Options:
+  --us-ref INTEGER    User Story #ref number to link to  [required]
   --subject TEXT      Task subject (single task)
   --description TEXT  Task description (single task)
   --tasks TEXT        Task subjects (repeatable, bulk mode)
   --tasks-json TEXT   JSON array of tasks: '[{"subject": "...", "description":
                       "..."}]'
-  --us INTEGER        User Story ID to link to
-  --us-ref INTEGER    User Story #ref number to link to
   --me                Assign task(s) to myself
   --help              Show this message and exit.
 ```
@@ -274,80 +279,37 @@ Options:
 ```
 Usage: taiga-cli create-userstory [OPTIONS]
 
-  Create a User Story (optionally with tasks)
+  Create a User Story with tasks and custom attributes in one go
 
 Options:
-  --subject TEXT      User Story subject  [required]
-  --description TEXT  User Story description
-  --tasks TEXT        Task subjects (repeatable, simple mode)
-  --tasks-json TEXT   JSON array of tasks: '[{"subject": "...", "description":
-                      "..."}]'
-  --me                Assign everything to myself
-  --help              Show this message and exit.
+  --subject TEXT            User Story subject  [required]
+  --description TEXT        User Story description
+  --status INTEGER          Initial status ID
+  --tasks TEXT              Task subjects (repeatable, simple mode)
+  --tasks-json TEXT         JSON array of tasks: '[{"subject": "...",
+                            "description": "..."}]'
+  --custom-attrs-json TEXT  JSON object of custom attributes: '{"<attr_id>":
+                            "value"}'
+  --me                      Assign everything to myself
+  --assigned-to INTEGER     Assign to specific user ID
+  --help                    Show this message and exit.
 ```
 
-### `taiga-cli get-custom-attr-values`
+### `taiga-cli update-task`
 
 ```
-Usage: taiga-cli get-custom-attr-values [OPTIONS]
+Usage: taiga-cli update-task [OPTIONS]
 
-  Get custom attribute values for a User Story
+  Update an existing Task's fields by #ref
 
 Options:
-  --id INTEGER   User Story internal ID
-  --ref INTEGER  User Story #ref number
-  --help         Show this message and exit.
-```
-
-### `taiga-cli get-userstory`
-
-```
-Usage: taiga-cli get-userstory [OPTIONS]
-
-  Get a User Story by ID or #ref number
-
-Options:
-  --id INTEGER   User Story internal ID
-  --ref INTEGER  User Story #ref number
-  --help         Show this message and exit.
-```
-
-### `taiga-cli list-custom-attributes`
-
-```
-Usage: taiga-cli list-custom-attributes [OPTIONS]
-
-  List custom attribute definitions
-
-Options:
-  --help  Show this message and exit.
-```
-
-### `taiga-cli search-userstories`
-
-```
-Usage: taiga-cli search-userstories [OPTIONS]
-
-  Search user stories by name
-
-Options:
-  -q, --query TEXT  Name keyword to search for (case-insensitive)
-  --me              Only show user stories assigned to me
-  --help            Show this message and exit.
-```
-
-### `taiga-cli update-custom-attr-values`
-
-```
-Usage: taiga-cli update-custom-attr-values [OPTIONS]
-
-  Update custom attribute values for a User Story
-
-Options:
-  --id INTEGER        User Story internal ID
-  --ref INTEGER       User Story #ref number
-  --values-json TEXT  JSON object: '{"<attr_id>": "value"}'  [required]
-  --help              Show this message and exit.
+  --ref INTEGER          Task #ref number  [required]
+  --subject TEXT         New subject
+  --description TEXT     New description
+  --status INTEGER       New status ID
+  --me                   Assign to myself
+  --assigned-to INTEGER  Assign to specific user ID
+  --help                 Show this message and exit.
 ```
 
 ### `taiga-cli update-userstory`
@@ -355,15 +317,50 @@ Options:
 ```
 Usage: taiga-cli update-userstory [OPTIONS]
 
-  Update an existing User Story
+  Update an existing User Story's fields and/or custom attributes
 
 Options:
-  --id INTEGER           User Story internal ID
-  --ref INTEGER          User Story #ref number
-  --subject TEXT         New subject
-  --description TEXT     New description
-  --status INTEGER       New status ID
-  --me                   Assign to myself
-  --assigned-to INTEGER  Assign to user ID
-  --help                 Show this message and exit.
+  --ref INTEGER             User Story #ref number  [required]
+  --subject TEXT            New subject
+  --description TEXT        New description
+  --status INTEGER          New status ID
+  --custom-attrs-json TEXT  JSON object to update custom attributes:
+                            '{"<attr_id>": "value"}'
+  --me                      Assign to myself
+  --assigned-to INTEGER     Assign to user ID
+  --help                    Show this message and exit.
+```
+
+---
+
+# `workflow-cli` – Command Reference
+
+```
+Usage: workflow-cli [OPTIONS] COMMAND [ARGS]...
+
+  Workflow CLI – cross-module automation commands
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  get-context  Get full context of a User Story (US, tasks, comments, IMS...
+```
+
+## Commands
+
+- `get-context`
+
+---
+
+### `workflow-cli get-context`
+
+```
+Usage: workflow-cli get-context [OPTIONS]
+
+  Get full context of a User Story (US, tasks, comments, IMS docs)
+
+Options:
+  --ref TEXT  User Story #ref number  [required]
+  --help      Show this message and exit.
 ```

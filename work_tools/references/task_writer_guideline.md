@@ -8,7 +8,8 @@ Detailed instructions for managing Taiga user stories and tasks via CLI.
 
 > **Project is pre-configured via environment variable.**
 > The target Taiga project is already set through an environment variable and is used as-is by the CLI.
-> **Do NOT query, list, or confirm the project** — never run commands like `list-projects` or similar. Just proceed directly with the task.
+> **Do NOT query, list, or confirm the project** — never run commands like `list-projects` or similar. Just proceed
+> directly with the task.
 
 > Authentication is handled automatically — the CLI reads the Taiga token directly from the Chrome browser session.
 
@@ -25,92 +26,84 @@ Use Markdown formatting for readability.
 
 ---
 
-## 2. Querying User Stories
+## 2. Querying Context
 
-### Search by name (`search-userstories`)
+### Get Full Context of a User Story (`workflow-cli`)
 
-Use when you need to find a US by keyword.
-
-```bash
-taiga-cli search-userstories --query "<keyword>" --me
-```
-
-Output: `ID`, `Ref (#number)`, `Subject`, `Assignee`
-
-- **1 result** → select it automatically and proceed.
-- **2+ results** → ask the user to choose.
-
-### Fetch by ID or Ref (`get-userstory`)
-
-Use when you already know the exact internal ID or `#ref` number.
+Use when you need to view the full details of a User Story, including its linked tasks, comments, custom attributes, and
+related IMS documents.
 
 ```bash
-taiga-cli get-userstory --id <US_ID>
-taiga-cli get-userstory --ref <REF>
+workflow-cli get-context --ref <US_REF>
 ```
-
-Output: `ID`, `Ref (#number)`, `Subject`, `Assignee`, `Version`, `URL`
 
 ---
 
 ## 3. Creating & Updating
 
+> **🚨 IMPORTANT: Do NOT set or update the `status` field.**
+> Status management is strictly handled manually by human users. Never use the `--status` option in any of your commands.
+
 ### Create a User Story
-
-Always create a User Story as the primary unit of work.
+Always create a User Story as the primary unit of work. You can create the story, attach tasks, and set custom attributes **in one go**.
 
 ```bash
+# Basic creation
 taiga-cli create-userstory --subject "<SUBJECT>" --description "<DESCRIPTION>"
+
+# With tasks and custom attributes
+taiga-cli create-userstory \
+  --subject "<SUBJECT>" \
+  --tasks-json '[{"subject": "Task 1", "description": "..."}, {"subject": "Task 2"}]' \
+  --custom-attrs-json '{"<attr_id>": "value"}' \
+  --me
 ```
-
-Add tasks only when needed:
-
-```bash
-# Simple list
-taiga-cli create-userstory --subject "<SUBJECT>" --tasks "Task 1" "Task 2"
-
-# With descriptions (recommended)
-taiga-cli create-userstory --subject "<SUBJECT>" --tasks-json '[{"subject": "...", "description": "..."}]'
-```
-
-Add `--me` if the user says "assign to me" or "my task".
+*Add `--me` if the user says "assign to me" or "my task".*
 
 ### Update a User Story
-
-Resolve the internal ID first (see section 2), then update only the fields that need to change.
+Update an existing User Story's core fields and/or custom attributes directly using its `#ref` number.
 
 ```bash
-# By internal ID
-taiga-cli update-userstory --id <US_ID> --subject "<new title>" --description "<new desc>" --me
+# Update subject and assign to me
+taiga-cli update-userstory --ref <US_REF> --subject "<new title>" --me
 
-# By ref number
-taiga-cli update-userstory --ref <REF> --subject "<new title>" --me
+# Update description and custom attributes
+taiga-cli update-userstory --ref <US_REF> --description "<new desc>" --custom-attrs-json '{"<attr_id>": "new value"}'
 ```
-
-Available fields: `--subject`, `--description`, `--status <STATUS_ID>`, `--assigned-to <USER_ID>`, `--me`
+*Available fields:* `--subject`, `--description`, `--custom-attrs-json`, `--assigned-to <USER_ID>`, `--me`
 
 ### Add Tasks to an Existing US
-
-Use `create-task` only when adding tasks to an already-existing User Story.
+Use `create-task` only when adding new tasks to an **already-existing** User Story.
 
 ```bash
-# Resolve the US internal ID first, then:
-taiga-cli create-task --us <US_ID> --tasks-json '[{"subject": "...", "description": "..."}, ...]'
-
-# Or by ref
+# By using the US ref number
 taiga-cli create-task --us-ref <US_REF> --tasks "Task 1" "Task 2"
+
+# With descriptions (recommended)
+taiga-cli create-task --us-ref <US_REF> --tasks-json '[{"subject": "...", "description": "..."}]'
+```
+
+### Update a Task
+Update an existing Task directly using its `#ref` number. 
+
+```bash
+# Assign to me
+taiga-cli update-task --ref <TASK_REF> --me
+
+# Change subject
+taiga-cli update-task --ref <TASK_REF> --subject "<new task title>"
 ```
 
 ---
 
 ## 4. Example Flows
 
-| User request                                                                     | Action                                                                                               |
-|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| "Client A has a payment error, here's the log — create a task."                  | Apply `issue_guideline.md` → `create-userstory`                                                      |
-| "Add a TODO for API modularization refactoring."                                 | Apply `future_task_guideline.md` → `create-userstory`                                                |
-| "Add dark mode support feature, split backend and frontend tasks, assign to me." | Apply `feature_guideline.md` → `create-userstory --tasks-json ... --me`                              |
-| "Add one more task to the 'Login Improvement' user story."                       | `search-userstories --query "Login Improvement"` → `create-task --us <ID>`                           |
-| "Add a task to US #42."                                                          | `get-userstory --ref 42` → `create-task --us <ID>`                                                   |
-| "Rename 'Dark Mode Support' US to 'Dark Mode Support (v2)', assign to me."       | `search-userstories --query "Dark Mode Support"` → `update-userstory --id <ID> --subject "..." --me` |
-| "Update the title of US #42."                                                    | `update-userstory --ref 42 --subject "<new title>"`                                                  |
+| User request                                                                     | Action                                                                                 |
+|----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| "Client A has a payment error, here's the log — create a task."                  | Apply `issue_guideline.md` → `taiga-cli create-userstory ...`                          |
+| "Add a TODO for API modularization refactoring."                                 | Apply `future_task_guideline.md` → `taiga-cli create-userstory ...`                    |
+| "Add dark mode support feature, split backend and frontend tasks, assign to me." | Apply `feature_guideline.md` → `taiga-cli create-userstory --tasks-json ... --me`      |
+| "Add one more task to US #42."                                                   | `taiga-cli create-task --us-ref 42 --subject "..."`                                    |
+| "Update the title and custom attributes of US #42."                              | `taiga-cli update-userstory --ref 42 --subject "..." --custom-attrs-json '{"1": "v"}'` |
+| "Reassign Task #105 to me and update its status."                                | `taiga-cli update-task --ref 105 --status <ID> --me`                                   |
+| "Check what tasks are left in US #42."                                           | `workflow-cli get-context --ref 42`                                                    |
