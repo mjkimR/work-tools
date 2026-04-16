@@ -1,7 +1,6 @@
 import pytest
 from modules.ims.handler import ImsCLIHandlers
 from modules.taiga.handler import TaigaCLIHandlers
-from modules.workflow.handler.taiga_ims import TaigaImsWorkflowHandler
 
 from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
 from tests.fake.data.taiga import (
@@ -117,35 +116,3 @@ class FakeTaigaClientWithIms(FakeTaigaClient):
 def fake_taiga_client_with_ims():
     """FakeTaigaClientWithIms instance for workflow handler tests."""
     return FakeTaigaClientWithIms()
-
-
-@pytest.fixture
-def workflow_handler(fake_taiga_client_with_ims, fake_ims_client):
-    """TaigaImsWorkflowHandler with Fake clients injected (bypasses browser/HTTP).
-
-    Pre-registers IMS documents keyed by the UUIDs used in test fixtures so that
-    get_document(uuid) calls resolve correctly during workflow handler tests.
-    """
-    from tests.fake.data.taiga import IMS_UUID_IN_CUSTOM_ATTR, IMS_UUID_IN_DESCRIPTION
-
-    # FakeImsClient의 _documents 키를 UUID로도 등록 (workflow handler는 UUID로 조회함)
-    sample_html = fake_ims_client._documents["8226"]
-    fake_ims_client.add_document(IMS_UUID_IN_DESCRIPTION, sample_html)
-    fake_ims_client.add_document(IMS_UUID_IN_CUSTOM_ATTR, sample_html)
-
-    handler = TaigaImsWorkflowHandler.__new__(TaigaImsWorkflowHandler)
-    handler.taiga_client = fake_taiga_client_with_ims
-    handler.ims_client = fake_ims_client
-    handler.util = fake_ims_client.util
-    return handler
-
-
-@pytest.fixture
-def fake_ims_client_with_two_docs(fake_taiga_client_with_ims, fake_ims_client):
-    """workflow_handler whose FakeImsClient has an extra document registered for uuid=aaaa-1111-bbbb-2222."""
-    fake_ims_client.add_document("8226_extra", fake_ims_client._documents["8226"])
-    handler = TaigaImsWorkflowHandler.__new__(TaigaImsWorkflowHandler)
-    handler.taiga_client = fake_taiga_client_with_ims
-    handler.ims_client = fake_ims_client
-    handler.util = fake_ims_client.util
-    return handler

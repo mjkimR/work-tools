@@ -42,17 +42,17 @@ class TestParseUuidFromUrl:
     """UUID extraction from IMS URLs."""
 
     def test_uuid_basic(self):
-        url = "https://ims.example.com/view?uuid=550e8400-e29b-41d4-a716-446655440000"
+        url = "https://ims.example.com/view?uid=550e8400-e29b-41d4-a716-446655440000"
         assert ImsUtils.parse_uuid_from_url(url) == "550e8400-e29b-41d4-a716-446655440000"
 
     def test_uuid_with_other_params(self):
-        url = "https://ims.example.com/view?mod=doc&uuid=abcdef12-3456-7890-abcd-ef1234567890&page=1"
+        url = "https://ims.example.com/view?mod=doc&uid=abcdef12-3456-7890-abcd-ef1234567890&page=1"
         assert ImsUtils.parse_uuid_from_url(url) == "abcdef12-3456-7890-abcd-ef1234567890"
 
     def test_no_uuid(self):
-        url = "https://ims.example.com/view?uid=123"
+        url = "https://ims.example.com/view?uuid=123"
         assert ImsUtils.parse_uuid_from_url(url) is None
 
     def test_short_hex(self):
-        url = "https://ims.example.com/view?uuid=abcdef"
+        url = "https://ims.example.com/view?uid=abcdef"
         assert ImsUtils.parse_uuid_from_url(url) == "abcdef"
