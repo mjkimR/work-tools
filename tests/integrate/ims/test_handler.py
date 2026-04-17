@@ -88,3 +88,26 @@ class TestGetDocuments:
     def test_unknown_uid_in_list_raises(self, ims_handlers):
         with pytest.raises(ValueError, match="not found"):
             ims_handlers.get_documents(["8226", "0000"])
+
+
+class TestGetDocumentFromUrl:
+    """Tests for get_document_from_url handler."""
+
+    def test_valid_url_prints_document(self, ims_handlers, capsys):
+        url = "https://developer.company.com/support-ai/?uid=8226&mod=document"
+        ims_handlers.get_document_from_url(url)
+        out = capsys.readouterr().out
+        assert "[DOCUMENT]" in out
+        assert "uid     : 8226" in out
+
+    def test_invalid_url_prints_error(self, ims_handlers, capsys):
+        url = "https://example.com/not-ims"
+        ims_handlers.get_document_from_url(url)
+        out = capsys.readouterr().out
+        assert "Error: Could not extract UID from URL" in out
+
+    def test_valid_ims_url_without_uid_prints_error(self, ims_handlers, capsys):
+        url = "https://developer.company.com/support-ai/"
+        ims_handlers.get_document_from_url(url)
+        out = capsys.readouterr().out
+        assert "Error: Could not extract UID from URL" in out

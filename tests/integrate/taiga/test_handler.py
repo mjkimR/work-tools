@@ -42,10 +42,21 @@ class TestCreateUserstory:
     def test_create_userstory_with_tasks(self, taiga_handlers, fake_taiga_client):
         taiga_handlers.create_userstory(
             subject="US with tasks",
-            tasks=["Task A", "Task B", "Task C"],
+            tasks=["Task A", "Task B::Description B", "Task C"],
         )
         assert len(fake_taiga_client.created_stories) == 1
         assert len(fake_taiga_client.created_tasks) == 3
+
+        # Check if descriptions are correctly parsed
+        assert fake_taiga_client.created_tasks[0]["subject"] == "Task A"
+        assert fake_taiga_client.created_tasks[0]["description"] == ""
+
+        assert fake_taiga_client.created_tasks[1]["subject"] == "Task B"
+        assert fake_taiga_client.created_tasks[1]["description"] == "Description B"
+
+        assert fake_taiga_client.created_tasks[2]["subject"] == "Task C"
+        assert fake_taiga_client.created_tasks[2]["description"] == ""
+
         # All tasks linked to the created US
         us_id = fake_taiga_client.created_stories[0]["id"]
         for task in fake_taiga_client.created_tasks:
@@ -61,6 +72,11 @@ class TestCreateUserstory:
         taiga_handlers.create_userstory(subject="US from JSON", tasks_json=tasks_json)
         assert len(fake_taiga_client.created_tasks) == 2
         assert fake_taiga_client.created_tasks[0]["subject"] == "JSON Task 1"
+
+    def test_create_userstory_with_custom_attrs(self, taiga_handlers, fake_taiga_client):
+        taiga_handlers.create_userstory(subject="US with custom attrs", custom_attrs=["123::Value A", "456::Value B"])
+        assert len(fake_taiga_client.updated_ca_values) == 1
+        assert fake_taiga_client.updated_ca_values[0]["attributes_values"] == {"123": "Value A", "456": "Value B"}
 
     def test_create_userstory_with_me(self, taiga_handlers, fake_taiga_client):
         taiga_handlers.create_userstory(subject="Assigned US", me=True)
@@ -88,8 +104,12 @@ class TestCreateTask:
         assert task["user_story"] == 100  # ref 42 → id 100
 
     def test_create_multiple_tasks(self, taiga_handlers, fake_taiga_client):
-        taiga_handlers.create_task(us_ref=42, tasks=["T1", "T2"])
+        taiga_handlers.create_task(us_ref=42, tasks=["T1::D1", "T2"])
         assert len(fake_taiga_client.created_tasks) == 2
+        assert fake_taiga_client.created_tasks[0]["subject"] == "T1"
+        assert fake_taiga_client.created_tasks[0]["description"] == "D1"
+        assert fake_taiga_client.created_tasks[1]["subject"] == "T2"
+        assert fake_taiga_client.created_tasks[1]["description"] == ""
 
     def test_create_task_no_input_raises(self, taiga_handlers):
         with pytest.raises(ValueError, match="At least one"):
@@ -107,3 +127,9 @@ class TestUpdateUserstory:
     def test_update_with_me(self, taiga_handlers, fake_taiga_client):
         taiga_handlers.update_userstory(ref=42, me=True)
         assert fake_taiga_client.updated_stories[0]["assigned_to"] == 10
+
+    def test_update_custom_attrs(self, taiga_handlers, fake_taiga_client):
+        taiga_handlers.update_userstory(ref=42, custom_attrs=["1::new value"])
+        assert len(fake_taiga_client.updated_ca_values) == 1
+        assert fake_taiga_client.updated_ca_values[0]["us_id"] == 100
+        assert fake_taiga_client.updated_ca_values[0]["attributes_values"] == {"1": "new value"}

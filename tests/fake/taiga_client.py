@@ -5,10 +5,12 @@ If a signature changes, tests using this fake will break → interface drift det
 """
 
 from tests.fake.data.taiga import (
+    COMMENTS,
     CUSTOM_ATTRIBUTE_VALUES,
     CUSTOM_ATTRIBUTES,
     ME,
     PROJECTS,
+    TASKS,
     USER_STORIES,
     USER_STORY_BY_REF,
     make_task,
@@ -114,3 +116,9 @@ class FakeTaigaClient:
         task = make_task(subject, description, assigned_to, user_story)
         self.created_tasks.append(task)
         return task
+
+    def get_tasks_by_userstory(self, us_id):
+        return TASKS.get(us_id, [])
+
+    def get_userstory_comments(self, us_id):
+        return COMMENTS.get(us_id, [])

@@ -1,6 +1,6 @@
 import pytest
-from modules.ims.handler import ImsCLIHandlers
-from modules.taiga.handler import TaigaCLIHandlers
+from work_tools.modules.ims.handler import ImsCLIHandlers
+from work_tools.modules.taiga.handler import TaigaCLIHandlers
 
 from tests.fake.data.ims import LOGIN_REQUIRED_HTML, SAMPLE_DOCUMENT_HTML
 from tests.fake.data.taiga import (
@@ -116,3 +116,14 @@ class FakeTaigaClientWithIms(FakeTaigaClient):
 def fake_taiga_client_with_ims():
     """FakeTaigaClientWithIms instance for workflow handler tests."""
     return FakeTaigaClientWithIms()
+
+
+@pytest.fixture
+def workflow_handler(fake_taiga_client_with_ims, fake_ims_client):
+    """UserStoryHandler with FakeTaigaClientWithIms and FakeImsClient injected."""
+    from work_tools.modules.workflow.handler.user_story import UserStoryHandler
+
+    return UserStoryHandler(
+        taiga_client=fake_taiga_client_with_ims,
+        ims_client=fake_ims_client,
+    )

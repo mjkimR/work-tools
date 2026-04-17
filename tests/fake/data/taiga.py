@@ -27,6 +27,7 @@ _US_TEMPLATE = {
     "version": 1,
     "assigned_to_extra_info": {"full_name_display": "Test User"},
     "project_extra_info": {"slug": "test-project"},
+    "status_extra_info": {"name": "New"},
 }
 
 
@@ -128,4 +129,31 @@ def make_task(subject: str, description: str = "", assigned_to=None, user_story=
         "description": description,
         "assigned_to": assigned_to,
         "user_story": user_story,
+        "status_extra_info": {"name": "New"},
+        "assigned_to_extra_info": {"full_name_display": "Test User"} if assigned_to else None,
     }
+
+
+TASKS = {
+    100: [
+        {
+            "id": 501,
+            "ref": 501,
+            "subject": "Task 1 for US 100",
+            "status_extra_info": {"name": "In Progress"},
+            "assigned_to_extra_info": {"full_name_display": "Test User"},
+            "project_extra_info": {"slug": "test-project"},
+        }
+    ],
+}
+
+COMMENTS = {
+    100: [
+        {
+            "id": 901,
+            "user": {"name": "Alice"},
+            "created_at": "2025-06-20T10:00:00Z",
+            "comment": "Initial comment for US 100",
+        }
+    ],
+}
