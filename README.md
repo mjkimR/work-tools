@@ -18,13 +18,13 @@ Then set up the `.env` file (see [Environment Variables](#-environment-variables
 
 ## 🔑 Environment Variables
 
-The `.env` file is generated interactively via `build_env.py`:
+The `.env` file is generated interactively via the unified CLI:
 
 ```bash
-uv run python work_tools/src/scripts/build_env.py
+uv run wt init
 ```
 
-The script will:
+The command will:
 1. Connect to Taiga via your open Chrome session and list available projects
 2. Ask you to select a project ID
 3. Auto-discover Taiga custom attributes and assign `TAIGA_CA_*` keys
@@ -35,11 +35,17 @@ The script will:
 
 ## 🖥️ CLI Usage
 
+The project uses a unified CLI entry point `wt`.
+
+```bash
+uv run wt --help
+```
+
 See [`work_tools/references/api_spec.md`](work_tools/references/api_spec.md) for the full command reference.
 
 > `api_spec.md` is auto-generated. To regenerate:
 > ```bash
-> uv run python work_tools/src/scripts/api_spec.py
+> uv run wt dev gen-spec
 > ```
 
 ## 📁 Project Structure
@@ -54,16 +60,18 @@ work_tools/
 │   ├── future_task_guideline.md  # Guidelines for future/TODO tasks
 │   └── issue_guideline.md        # Guidelines for client issue tasks
 └── src/
-    ├── core/                 # Core utilities (logging, setup, exceptions)
-    ├── modules/
-    │   ├── browser/          # Extracts auth tokens and cookies from a running browser
-    │   ├── docs/             # read-docs CLI — composes context from references, env vars, and dynamic data
-    │   ├── git_repo/         # Git CLI — staged diff, commit history, branch info
-    │   ├── ims/              # In-house IMS CLI — document retrieval and comment posting
-    │   ├── taiga/            # In-house Taiga CLI — user stories, tasks, and custom attributes
-    │   └── workflow/         # Facade layer — orchestrates cross-tool automation workflows
-    ├── scripts/              # Standalone utility scripts
-    └── util/                 # Shared utility helpers
+    └── work_tools/           # Main package
+        ├── main.py           # Unified CLI entry point (wt)
+        ├── core/             # Core utilities (logging, setup, exceptions)
+        ├── modules/
+        │   ├── browser/      # Extracts auth tokens and cookies from a running browser
+        │   ├── docs/         # read-docs CLI — composes context from references, env vars, and dynamic data
+        │   ├── git_repo/     # Git CLI — staged diff, commit history, branch info
+        │   ├── ims/          # In-house IMS CLI — document retrieval and comment posting
+        │   ├── taiga/        # In-house Taiga CLI — user stories, tasks, and custom attributes
+        │   └── workflow/     # Facade layer — orchestrates cross-tool automation workflows
+        ├── scripts/          # Utility scripts and CLI subcommands
+        └── util/             # Shared utility helpers
 ```
 
 ### Module Overview

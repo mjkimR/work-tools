@@ -2,8 +2,8 @@
 
 import pytest
 import yaml
-from modules.docs.config import DocsSettings
-from modules.docs.loader import DocsLoader, _mask_value
+from work_tools.modules.docs.config import DocsSettings
+from work_tools.modules.docs.loader import DocsLoader, _mask_value
 
 
 def dummy_generator() -> str:

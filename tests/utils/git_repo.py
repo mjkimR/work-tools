@@ -12,8 +12,8 @@ Usage in conftest.py::
 import subprocess
 from pathlib import Path
 
-from modules.git_repo.config import GitRepoSettings
-from modules.git_repo.git_log import GitRepoManager
+from work_tools.modules.git_repo.config import GitRepoSettings
+from work_tools.modules.git_repo.git_log import GitRepoManager
 
 _TEST_EMAIL = "test@example.com"
 _TEST_NAME = "Test User"

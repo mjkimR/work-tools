@@ -1,8 +1,8 @@
 """Tests for ImsUtils — URL extraction and UUID parsing."""
 
 import pytest
-from modules.ims.config import ImsSettings
-from modules.ims.utils import ImsUtils
+from work_tools.modules.ims.config import ImsSettings
+from work_tools.modules.ims.utils import ImsUtils
 
 
 @pytest.fixture

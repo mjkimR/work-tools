@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 from click.testing import CliRunner
-from modules.git_repo.api import cli
+from work_tools.modules.git_repo.api import cli
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def runner():
 @pytest.fixture
 def patch_manager(monkeypatch, git_manager):
     """Patch get_manager in api to return the safe temporary git_manager."""
-    monkeypatch.setattr("modules.git_repo.api.get_manager", lambda: git_manager)
+    monkeypatch.setattr("work_tools.modules.git_repo.api.get_manager", lambda: git_manager)
     return git_manager
 
 

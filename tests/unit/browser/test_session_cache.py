@@ -6,8 +6,8 @@ import json
 import time
 from pathlib import Path
 
-from modules.browser.schema import SessionInfo
-from modules.browser.session_cache import SessionCache
+from work_tools.modules.browser.schema import SessionInfo
+from work_tools.modules.browser.session_cache import SessionCache
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -101,18 +101,18 @@ class TestSessionCacheTTL:
 
     def test_ttl_env_override(self, monkeypatch):
         monkeypatch.setenv("BROWSER_SESSION_CACHE_TTL_SECONDS", "7200")
-        from modules.browser.session_cache import _get_ttl
+        from work_tools.modules.browser.session_cache import _get_ttl
 
         assert _get_ttl() == 7200
 
     def test_ttl_invalid_env_falls_back_to_default(self, monkeypatch):
         monkeypatch.setenv("BROWSER_SESSION_CACHE_TTL_SECONDS", "not_a_number")
-        from modules.browser.session_cache import _DEFAULT_TTL_SECONDS, _get_ttl
+        from work_tools.modules.browser.session_cache import _DEFAULT_TTL_SECONDS, _get_ttl
 
         assert _get_ttl() == _DEFAULT_TTL_SECONDS
 
     def test_ttl_default_is_one_day(self):
-        from modules.browser.session_cache import _DEFAULT_TTL_SECONDS
+        from work_tools.modules.browser.session_cache import _DEFAULT_TTL_SECONDS
 
         assert _DEFAULT_TTL_SECONDS == 86_400
 

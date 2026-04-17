@@ -2,9 +2,9 @@
 
 import pytest
 import yaml
-from modules.docs.config import DocsSettings
-from modules.docs.handler import DocsCLIHandlers
-from modules.docs.loader import DocsLoader
+from work_tools.modules.docs.config import DocsSettings
+from work_tools.modules.docs.handler import DocsCLIHandlers
+from work_tools.modules.docs.loader import DocsLoader
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def fake_docs_env(tmp_path, monkeypatch):
         DOCS_REFERENCES_DIR=str(tmp_path),  # type: ignore[call-arg]
         DOCS_MANIFEST_PATH=str(manifest_path),  # type: ignore[call-arg]
     )  # Patch get_docs_settings so that DocsLoader() inside Handler picks it up
-    monkeypatch.setattr("modules.docs.loader.get_docs_settings", lambda: settings)
+    monkeypatch.setattr("work_tools.modules.docs.loader.get_docs_settings", lambda: settings)
     return settings
 
 

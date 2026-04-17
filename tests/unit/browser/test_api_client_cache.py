@@ -10,10 +10,10 @@ from unittest.mock import patch
 
 import httpx
 import pytest
-from core.exception import TokenExpiredError, TokenRetrievalError
-from modules.browser.api_client import AuthMode, BrowserTokenBaseClient
-from modules.browser.schema import SessionInfo
-from modules.browser.session_cache import SessionCache
+from work_tools.core.exception import TokenExpiredError, TokenRetrievalError
+from work_tools.modules.browser.client import AuthMode, BrowserTokenBaseClient
+from work_tools.modules.browser.schema import SessionInfo
+from work_tools.modules.browser.session_cache import SessionCache
 
 # ---------------------------------------------------------------------------
 # Minimal concrete subclass for testing
@@ -54,7 +54,7 @@ def _make_client(tmp_path: Path, session: SessionInfo | None = None) -> FakeClie
     if session is None:
         session = _make_session()
 
-    patcher = patch("modules.browser.api_client.get_session_info", return_value=session)
+    patcher = patch("work_tools.modules.browser.client.get_session_info", return_value=session)
     patcher.start()
     try:
         client = FakeClient.__new__(FakeClient)
@@ -83,7 +83,7 @@ class TestCacheMissFlow:
     def test_browser_fetched_on_cache_miss(self, tmp_path):
         """Browser get_session_info is called exactly once on a cold cache."""
         session = _make_session()
-        with patch("modules.browser.api_client.get_session_info", return_value=session) as mock_get:
+        with patch("work_tools.modules.browser.client.get_session_info", return_value=session) as mock_get:
             client = FakeClient.__new__(FakeClient)
             client._session_cache = _make_cache(tmp_path)
             client.session_info = client._get_session_info_with_cache()
@@ -97,7 +97,7 @@ class TestCacheMissFlow:
 
     def test_retrieval_error_propagates(self, tmp_path):
         with patch(
-            "modules.browser.api_client.get_session_info",
+            "work_tools.modules.browser.client.get_session_info",
             side_effect=TokenRetrievalError("no tab found"),
         ):
             client = FakeClient.__new__(FakeClient)
@@ -118,7 +118,7 @@ class TestCacheHitFlow:
         cache = _make_cache(tmp_path)
         cache.save(initial_session)
 
-        with patch("modules.browser.api_client.get_session_info") as mock_get:
+        with patch("work_tools.modules.browser.client.get_session_info") as mock_get:
             client = FakeClient.__new__(FakeClient)
             client._session_cache = cache
             client.session_info = client._get_session_info_with_cache()
@@ -141,7 +141,7 @@ class TestHandleUnauthorized:
         client._session_cache.save(client.session_info)  # ensure file exists
 
         new_session = _make_session("tok-refreshed")
-        with patch("modules.browser.api_client.get_session_info", return_value=new_session):
+        with patch("work_tools.modules.browser.client.get_session_info", return_value=new_session):
             client._handle_unauthorized(self._make_response(401))
 
         # Cache file should contain fresh token
@@ -153,7 +153,7 @@ class TestHandleUnauthorized:
         client = _make_client(tmp_path)
         new_session = _make_session("tok-new")
 
-        with patch("modules.browser.api_client.get_session_info", return_value=new_session):
+        with patch("work_tools.modules.browser.client.get_session_info", return_value=new_session):
             client._handle_unauthorized(self._make_response(401))
 
         assert client.session_info.local_storage["auth_token"] == "tok-new"
@@ -162,7 +162,7 @@ class TestHandleUnauthorized:
         client = _make_client(tmp_path)
 
         with patch(
-            "modules.browser.api_client.get_session_info",
+            "work_tools.modules.browser.client.get_session_info",
             side_effect=TokenRetrievalError("browser unavailable"),
         ):
             with pytest.raises(TokenExpiredError):
@@ -173,7 +173,7 @@ class TestHandleUnauthorized:
         client._session_cache.save(client.session_info)
 
         with patch(
-            "modules.browser.api_client.get_session_info",
+            "work_tools.modules.browser.client.get_session_info",
             side_effect=TokenRetrievalError("browser unavailable"),
         ):
             with pytest.raises(TokenExpiredError):

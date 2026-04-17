@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from modules.git_repo.git_log import GitRepoManager
+from work_tools.modules.git_repo.git_log import GitRepoManager
 
 
 class TestParseCommitRange:

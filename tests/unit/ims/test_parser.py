@@ -1,7 +1,7 @@
 """Tests for ImsDocumentParser — HTML fixture-based parsing verification."""
 
 import pytest
-from modules.ims.parser import ImsDocumentParser
+from work_tools.modules.ims.parser import ImsDocumentParser
 
 
 @pytest.fixture
