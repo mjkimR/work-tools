@@ -21,7 +21,7 @@ subjects:
       - quick_commands.md
     env_vars: [ ]
     generators:
-      - "scripts.taiga_custom_attrs:generate_custom_attributes"
+      - "work_tools.scripts.taiga_custom_attrs:generate_custom_attributes"
 
   api-reference:
     description: "API specification reference for CLI tools."
@@ -29,4 +29,4 @@ subjects:
       - api_spec.md
       - quick_commands.md
     env_vars: [ ]
-    generators: [ ] # scripts.api_spec:generate_all
+    generators: [ ] # work_tools.scripts.api_spec:generate_all
