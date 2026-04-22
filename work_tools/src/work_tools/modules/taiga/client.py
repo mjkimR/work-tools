@@ -129,7 +129,7 @@ class TaigaClient(BrowserTokenBaseClient):
         self._raise_for_status(response)
         return response.json()
 
-    def update_user_story(self, us_id, subject=None, description=None, status=None, assigned_to=None, version=None):
+    def update_user_story(self, us_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None):
         """Update fields of an existing user story.
 
         Args:
@@ -138,6 +138,7 @@ class TaigaClient(BrowserTokenBaseClient):
             description: New description for the user story.
             status: New status ID.
             assigned_to: New assignee user ID.
+            comment: Optional comment to add to the history.
             version: Optimistic locking version; fetched automatically if not provided.
 
         Returns:
@@ -156,6 +157,8 @@ class TaigaClient(BrowserTokenBaseClient):
             data["status"] = status
         if assigned_to is not None:
             data["assigned_to"] = assigned_to
+        if comment is not None:
+            data["comment"] = comment
 
         response = self.patch(f"/userstories/{us_id}", json=data)
         self._raise_for_status(response)
@@ -184,11 +187,16 @@ class TaigaClient(BrowserTokenBaseClient):
         Returns:
             The updated custom attribute values as a dict.
         """
+        current = self.get_userstory_custom_attribute_values(us_id)
         if version is None:
-            current = self.get_userstory_custom_attribute_values(us_id)
             version = current["version"]
+
+        # Merge existing values with new values to prevent clearing omitted attributes
+        merged_values = current.get("attributes_values", {}).copy()
+        merged_values.update(attributes_values)
+
         data = {
-            "attributes_values": attributes_values,
+            "attributes_values": merged_values,
             "version": version,
         }
         response = self.patch(f"/userstories/custom-attributes-values/{us_id}", json=data)
@@ -262,7 +270,7 @@ class TaigaClient(BrowserTokenBaseClient):
         self._raise_for_status(response)
         return response.json()
 
-    def update_task(self, task_id, subject=None, description=None, status=None, assigned_to=None, version=None):
+    def update_task(self, task_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None):
         """Update fields of an existing task.
 
         Args:
@@ -271,6 +279,7 @@ class TaigaClient(BrowserTokenBaseClient):
             description: New description for the task.
             status: New status ID.
             assigned_to: New assignee user ID.
+            comment: Optional comment to add to the history.
             version: Optimistic locking version; fetched automatically if not provided.
         """
         if version is None:
@@ -286,6 +295,8 @@ class TaigaClient(BrowserTokenBaseClient):
             data["status"] = status
         if assigned_to is not None:
             data["assigned_to"] = assigned_to
+        if comment is not None:
+            data["comment"] = comment
 
         response = self.patch(f"/tasks/{task_id}", json=data)
         self._raise_for_status(response)

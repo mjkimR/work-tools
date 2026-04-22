@@ -80,20 +80,21 @@ class TaigaCLIHandlers:
             print(f"   ↳ Task created: #{task['ref']} - {task['subject']}")
 
     def update_userstory(
-        self, ref, subject=None, description=None, status=None, custom_attrs=None, me=False, assigned_to=None
+        self, ref, subject=None, description=None, status=None, custom_attrs=None, comment=None, me=False, assigned_to=None
     ):
         """Unified update: Core US fields and Custom Attributes via #ref"""
         us_id = self._get_id_from_ref(ref)
         resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
 
         # 1. Update Core Fields (only if at least one field is provided)
-        if any(v is not None for v in [subject, description, status, resolved_assignee]):
+        if any(v is not None for v in [subject, description, status, resolved_assignee, comment]):
             us = self.client.update_user_story(
                 us_id,
                 subject=subject,
                 description=description,
                 status=status,
                 assigned_to=resolved_assignee,
+                comment=comment,
             )
             print(f"✅ User Story #{us['ref']} updated.")
 
@@ -149,18 +150,19 @@ class TaigaCLIHandlers:
 
     # ── Command Handlers ───────────────────────────────────────────────
 
-    def update_task(self, ref, subject=None, description=None, status=None, me=False, assigned_to=None):
+    def update_task(self, ref, subject=None, description=None, status=None, comment=None, me=False, assigned_to=None):
         """Update an existing Task's fields via #ref"""
         task_id = self._get_task_id_from_ref(ref)
         resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
 
-        if any(v is not None for v in [subject, description, status, resolved_assignee]):
+        if any(v is not None for v in [subject, description, status, resolved_assignee, comment]):
             task = self.client.update_task(
                 task_id=task_id,
                 subject=subject,
                 description=description,
                 status=status,
                 assigned_to=resolved_assignee,
+                comment=comment,
             )
             print(f"✅ Task #{task['ref']} updated: {task['subject']}")
             print(f"   URL: https://tree.taiga.io/project/{task['project_extra_info']['slug']}/task/{task['ref']}")

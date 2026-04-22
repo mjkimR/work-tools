@@ -55,9 +55,10 @@ def create_userstory(subject, description, status, tasks, tasks_json, custom_att
 @click.option("--description", default=None, help="New description")
 @click.option("--status", type=int, default=None, help="New status ID")
 @click.option("--custom-attrs", multiple=True, help="Custom attributes to update as 'attr_id::value' (repeatable)")
+@click.option("--comment", default=None, help="Add a comment to the history")
 @click.option("--me", is_flag=True, help="Assign to myself")
 @click.option("--assigned-to", type=int, default=None, help="Assign to user ID")
-def update_userstory(ref, subject, description, status, custom_attrs, me, assigned_to):
+def update_userstory(ref, subject, description, status, custom_attrs, comment, me, assigned_to):
     """Update an existing User Story's fields and/or custom attributes"""
     get_handlers().update_userstory(
         ref=ref,
@@ -65,6 +66,7 @@ def update_userstory(ref, subject, description, status, custom_attrs, me, assign
         description=description,
         status=status,
         custom_attrs=list(custom_attrs) if custom_attrs else None,
+        comment=comment,
         me=me,
         assigned_to=assigned_to,
     )
@@ -101,15 +103,17 @@ def create_task(us_ref, subject, description, tasks, tasks_json, me):
 @click.option("--subject", default=None, help="New subject")
 @click.option("--description", default=None, help="New description")
 @click.option("--status", type=int, default=None, help="New status ID")
+@click.option("--comment", default=None, help="Add a comment to the history")
 @click.option("--me", is_flag=True, help="Assign to myself")
 @click.option("--assigned-to", type=int, default=None, help="Assign to specific user ID")
-def update_task(ref, subject, description, status, me, assigned_to):
+def update_task(ref, subject, description, status, comment, me, assigned_to):
     """Update an existing Task's fields by #ref"""
     get_handlers().update_task(
         ref=ref,
         subject=subject,
         description=description,
         status=status,
+        comment=comment,
         me=me,
         assigned_to=assigned_to,
     )
