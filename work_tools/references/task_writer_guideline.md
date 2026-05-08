@@ -44,6 +44,10 @@ wt workflow get-context --ref <US_REF>
 > **🚨 IMPORTANT: Do NOT set or update the `status` field.**
 > Status management is strictly handled manually by human users. Never use the `--status` option in any of your commands.
 
+> **🚨 IMPORTANT: Do NOT use GFM checkboxes (`[ ]` or `[x]`).**
+> Taiga does not support GFM checkbox syntax in descriptions, and it will break the formatting. 
+> Use standard bullet points (`-` or `*`).
+
 ### Create a User Story
 Always create a User Story as the primary unit of work. You can create the story, attach tasks, and set custom attributes **in one go**.
 
