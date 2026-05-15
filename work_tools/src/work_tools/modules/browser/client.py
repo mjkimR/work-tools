@@ -151,8 +151,8 @@ class BrowserTokenBaseClient(ABC):
         """Close the current httpx.Client and build a new one from ``self.session_info``."""
         try:
             self.http.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(f"Failed to close HTTP client during rebuild: {exc}")
 
         headers, cookies = self._build_auth()
         headers = {**self.default_headers, **headers}
@@ -319,5 +319,6 @@ class BrowserTokenBaseClient(ABC):
     def __del__(self):
         try:
             self.http.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(f"Failed to close HTTP client during deletion: {exc}")
+

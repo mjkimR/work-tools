@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import binascii
 import time
 from pathlib import Path
 
@@ -69,8 +70,9 @@ def _decode_values(d: dict) -> dict:
         if isinstance(v, str):
             try:
                 result[k] = base64.b64decode(v.encode()).decode()
-            except Exception:
-                result[k] = v  # 디코딩 실패 시 원본 유지 (이전 캐시 호환)
+            except (binascii.Error, UnicodeDecodeError, ValueError):
+                # Maintain original when decoding fails (backward compatibility for previous cache)
+                result[k] = v
         elif isinstance(v, dict):
             result[k] = _decode_values(v)
         else:

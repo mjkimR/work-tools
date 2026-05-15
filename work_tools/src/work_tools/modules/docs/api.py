@@ -2,6 +2,7 @@ import sys
 
 import click
 from work_tools.core import setup
+from work_tools.core.log import logger
 from work_tools.modules.docs.handler import DocsCLIHandlers
 from work_tools.modules.docs.loader import DocsLoader
 
@@ -24,7 +25,8 @@ def _build_read_docs_help() -> str:
             subjects_block = "\n\n".join(lines)
         else:
             subjects_block = "  (none)"
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"Failed to list subjects for help text: {exc}")
         subjects_block = "  (unavailable)"
     # \b prevents Click from re-wrapping the text below it
     return (
