@@ -12,6 +12,21 @@ def get_manager():
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+def print_commits(commits: list[dict]) -> None:
+    """Print commit details in a human-readable format."""
+    for i, c in enumerate(commits, 1):
+        click.echo(f"\n{'=' * 60}")
+        click.echo(f"[{i}/{len(commits)}] {c['sha'][:12]}  {c['date']}")
+        click.echo(f"Author : {c['author_name']} <{c['author_email']}>")
+        click.echo(f"Subject: {c['subject']}")
+        if c.get("body"):
+            click.echo(f"Body   :\n{c['body']}")
+        if "raw_diff" in c:
+            click.echo("\n--- diff ---")
+            click.echo(c["raw_diff"])
+        elif "diff" in c:
+            click.echo("\n--- diff ---")
+            click.echo(c["diff"])
 
 
 @click.group()
@@ -57,7 +72,7 @@ def log(use_branch, commit_input):
         sys.exit(0)
 
     click.echo(f"\nFound {len(commits)} commit(s).")
-    manager.print_commits(commits)
+    print_commits(commits)
 
 
 @cli.command("commit-info")

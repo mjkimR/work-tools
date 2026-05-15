@@ -76,7 +76,7 @@ class GitRepoManager:
         # Single commit
         return input_str, None
 
-    def get_git_log(self, start: str, end: str | None) -> list[dict]:
+    def get_git_log(self, start: str, end: str | None, include_diff: bool = False) -> list[dict]:
         """Retrieve git log entries from the repository.
 
         For a single commit, returns only that commit. For a range, returns
@@ -86,10 +86,12 @@ class GitRepoManager:
         Args:
             start: Starting commit SHA or ref.
             end: Ending commit SHA or ref. None for a single commit lookup.
+            include_diff: If True, fetch and attach the full diff (stat + patch)
+                to each commit dictionary.
 
         Returns:
             A list of commit dicts with keys: sha, author_name, author_email,
-            date, subject, body.
+            date, subject, body, and optionally raw_diff.
 
         Raises:
             RuntimeError: If the git log command fails.
@@ -103,22 +105,63 @@ class GitRepoManager:
             rev_range = [f"{start}..{end}"]
             extra_flags = []
 
+        if include_diff:
+            # %x1e: Record Separator, %x1f: Unit Separator
+            pretty_format = "%x1e%H%x1f%an%x1f%ae%x1f%ad%x1f%s%x1f%b%x1f"
+            extra_flags += ["-p", "--stat"]
+        else:
+            pretty_format = "%H%x00%an%x00%ae%x00%ad%x00%s%x00%b%x00END"
+
         cmd = [
             "log",
             "--author",
             self.author_email,
-            "--pretty=format:%H%x00%an%x00%ae%x00%ad%x00%s%x00%b%x00END",
+            f"--pretty=format:{pretty_format}",
             "--date=iso",
             *extra_flags,
             *rev_range,
         ]
 
         result = self._run_git(*cmd)
-
         raw = result.stdout.strip()
         if not raw:
             return []
 
+        if include_diff:
+            return self._parse_log_with_diff(raw)
+        else:
+            return self._parse_log_without_diff(raw)
+
+    @staticmethod
+    def _parse_log_with_diff(raw: str) -> list[dict]:
+        """Parse git log output containing diff information."""
+        commits = []
+        # Split by Record Separator, ignore leading empty string if present
+        blocks = raw.strip("\n").split("\x1e")
+        for block in blocks:
+            if not block:
+                continue
+            parts = block.split("\x1f")
+            if len(parts) < 7:
+                continue
+            sha, author_name, author_email_val, date, subject, body, raw_diff = parts[:7]
+
+            commits.append(
+                {
+                    "sha": sha,
+                    "author_name": author_name,
+                    "author_email": author_email_val,
+                    "date": date,
+                    "subject": subject,
+                    "body": body.strip(),
+                    "raw_diff": raw_diff.strip("\n"),
+                }
+            )
+        return commits
+
+    @staticmethod
+    def _parse_log_without_diff(raw: str) -> list[dict]:
+        """Parse git log output without diff information."""
         commits = []
         # Split each commit block by END delimiter
         for block in raw.split("\x00END"):
@@ -140,7 +183,6 @@ class GitRepoManager:
                     "body": body,
                 }
             )
-
         return commits
 
     def get_commit_diff(self, sha: str) -> str:
@@ -155,7 +197,7 @@ class GitRepoManager:
         Raises:
             RuntimeError: If the git show command fails.
         """
-        result = self._run_git("show", "--stat", "--patch", sha)
+        result = self._run_git("show", "--stat", "--patch", "--date=iso", sha)
         return result.stdout.strip()
 
     def fetch_commits_with_diff(self, commit_input: str) -> list[dict]:
@@ -165,32 +207,12 @@ class GitRepoManager:
             commit_input: Raw commit input string (single SHA, range, or ~N).
 
         Returns:
-            A list of commit dicts, each augmented with a 'diff' key.
+            A list of commit dicts, each augmented with a 'raw_diff' key.
         """
         start, end = self.parse_commit_range(commit_input)
-        commits = self.get_git_log(start, end)
+        return self.get_git_log(start, end, include_diff=True)
 
-        if not commits:
-            print(f"[Warning] No commits found for author '{self.author_email}'.")
-            return []
 
-        for commit in commits:
-            commit["diff"] = self.get_commit_diff(commit["sha"])
-
-        return commits
-
-    @staticmethod
-    def print_commits(commits: list[dict]) -> None:
-        """Print commit details in a human-readable format."""
-        for i, c in enumerate(commits, 1):
-            print(f"\n{'=' * 60}")
-            print(f"[{i}/{len(commits)}] {c['sha'][:12]}  {c['date']}")
-            print(f"Author : {c['author_name']} <{c['author_email']}>")
-            print(f"Subject: {c['subject']}")
-            if c["body"]:
-                print(f"Body   :\n{c['body']}")
-            print("\n--- diff ---")
-            print(c["diff"])
 
     # ── Commit-info helpers ─────────────────────────────────────────────
 
@@ -312,7 +334,7 @@ class GitRepoManager:
 
         Returns:
             A list of commit dicts (same schema as :meth:`fetch_commits_with_diff`),
-            each augmented with a ``diff`` key.
+            each augmented with a ``raw_diff`` key.
 
         Raises:
             RuntimeError: If the current branch is not a feature branch (does not
