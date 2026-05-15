@@ -13,12 +13,6 @@ from pathlib import Path
 
 # ── Path Configuration ───────────────────────────────────────────────────────
 
-# /Users/mj/workspace/playground/work-tools/work_tools/src/work_tools/scripts/api_spec.py
-# -> parents[0]: scripts/
-# -> parents[1]: work_tools/
-# -> parents[2]: src/
-# -> parents[3]: work_tools/
-# -> parents[4]: work-tools/ (PROJECT_ROOT)
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 REFERENCES_DIR = PROJECT_ROOT / "work_tools" / "references"
 OUTPUT_FILE = REFERENCES_DIR / "api_spec.md"
@@ -29,6 +23,14 @@ OUTPUT_FILE = REFERENCES_DIR / "api_spec.md"
 
 def _run_help(cli_name: str, *args: str) -> str:
     """Run `<cli_name> [args] --help` and return stdout."""
+    # Security: Validate inputs to prevent command injection
+    if cli_name != "wt":
+        raise ValueError(f"Unauthorized cli_name: {cli_name}")
+
+    for arg in args:
+        if not re.match(r"^[a-zA-Z0-9_-]+$", arg):
+            raise ValueError(f"Invalid character in argument: {arg}")
+
     # Try using 'uv run cli_name' for better compatibility with the environment
     cmd = ["uv", "run", cli_name, *args, "--help"]
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
