@@ -14,3 +14,8 @@ hooks-install:
 # Run pre-commit hooks against all files
 hooks-run:
     uv run pre-commit run --all-files
+
+# Install work-tools globally and register agent skill
+install:
+    chmod +x install.sh
+    ./install.sh

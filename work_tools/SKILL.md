@@ -2,7 +2,7 @@
 name: work-tools
 description:
   A collection of AI skills for automating work tasks — Taiga management, Git workflows, and more.
-  Uses `wt docs read-docs <subject>` to load the appropriate context before starting any task.
+  Uses `wt docs read-docs subject` to load the appropriate context before starting any task.
 ---
 
 # Skill: work-tools
@@ -25,6 +25,15 @@ wt docs read-docs <subject>
 ```
 
 This fetches guidelines, API specs, and environment variables needed for the task.
+
+---
+
+## ⚠️ Command Execution
+
+- **Simply execute `wt` CLI commands directly from any workspace directory.**
+- Do NOT switch the command execution directory (CWD) to the `work-tools` repository. Run `wt` from the active target workspace.
+- The `wt` tool will automatically resolve its `.env` settings and dependencies globally.
+- Let the `wt` CLI automatically target the configured repository (via `GIT_TARGET_REPO`) from the `work-tools` root.
 
 ---
 
