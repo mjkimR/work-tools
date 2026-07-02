@@ -129,7 +129,9 @@ class TaigaClient(BrowserTokenBaseClient):
         self._raise_for_status(response)
         return response.json()
 
-    def update_user_story(self, us_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None):
+    def update_user_story(
+        self, us_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None
+    ):
         """Update fields of an existing user story.
 
         Args:
@@ -270,7 +272,9 @@ class TaigaClient(BrowserTokenBaseClient):
         self._raise_for_status(response)
         return response.json()
 
-    def update_task(self, task_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None):
+    def update_task(
+        self, task_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None
+    ):
         """Update fields of an existing task.
 
         Args:

@@ -321,4 +321,3 @@ class BrowserTokenBaseClient(ABC):
             self.http.close()
         except Exception as exc:
             logger.debug(f"Failed to close HTTP client during deletion: {exc}")
-

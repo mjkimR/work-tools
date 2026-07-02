@@ -25,4 +25,4 @@ class TestTaigaSettingsCaParsing:
 
     def test_domain_default(self):
         settings = TaigaSettings()  # type: ignore[call-arg]
-        assert settings.domain == "taiga"
+        assert settings.domain == "taiga.lab.morpheus.kr"

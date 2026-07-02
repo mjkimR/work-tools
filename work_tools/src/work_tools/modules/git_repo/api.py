@@ -12,6 +12,8 @@ def get_manager():
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
 def print_commits(commits: list[dict]) -> None:
     """Print commit details in a human-readable format."""
     for i, c in enumerate(commits, 1):

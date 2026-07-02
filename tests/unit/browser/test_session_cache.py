@@ -6,6 +6,7 @@ import json
 import time
 from pathlib import Path
 
+from work_tools.modules.browser import session_cache as session_cache_module
 from work_tools.modules.browser.schema import SessionInfo
 from work_tools.modules.browser.session_cache import SessionCache
 
@@ -115,6 +116,35 @@ class TestSessionCacheTTL:
         from work_tools.modules.browser.session_cache import _DEFAULT_TTL_SECONDS
 
         assert _DEFAULT_TTL_SECONDS == 86_400
+
+
+# ---------------------------------------------------------------------------
+# cache directory selection
+# ---------------------------------------------------------------------------
+
+
+class TestSessionCacheDir:
+    def test_cache_dir_env_override(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "browser-session-cache"
+        monkeypatch.setenv("WT_BROWSER_SESSION_CACHE_DIR", str(cache_dir))
+
+        assert session_cache_module._get_cache_dir() == cache_dir
+
+    def test_cache_dir_falls_back_to_workspace_when_user_cache_unwritable(self, tmp_path, monkeypatch):
+        user_cache = tmp_path / "blocked-user-cache"
+        calls = []
+
+        def fake_ensure_writable_dir(path):
+            calls.append(path)
+            return path != user_cache
+
+        monkeypatch.delenv("WT_BROWSER_SESSION_CACHE_DIR", raising=False)
+        monkeypatch.setattr(session_cache_module, "_user_cache_dir", lambda: user_cache)
+        monkeypatch.setattr(session_cache_module, "_ensure_writable_dir", fake_ensure_writable_dir)
+        monkeypatch.chdir(tmp_path)
+
+        assert session_cache_module._get_cache_dir() == tmp_path / ".work-tools-cache" / "browser_session"
+        assert calls == [user_cache, tmp_path / ".work-tools-cache" / "browser_session"]
 
 
 # ---------------------------------------------------------------------------

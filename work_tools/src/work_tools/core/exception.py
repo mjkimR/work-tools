@@ -27,6 +27,4 @@ class TokenRetrievalError(AgentBaseException):
 class TokenExpiredError(AgentBaseException):
     """Raised when an API request fails due to an expired or invalid auth token."""
 
-    agent_instruction = (
-        "[AGENT INSTRUCTION] The user must refresh the session in the browser manually.\n\n"
-    )
+    agent_instruction = "[AGENT INSTRUCTION] The user must refresh the session in the browser manually.\n\n"

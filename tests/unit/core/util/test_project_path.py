@@ -6,7 +6,10 @@ from work_tools.core.util.project_path import get_git_repo_root
 
 def test_get_git_repo_root_no_git(tmp_path):
     """Test that RuntimeError is raised when no .git directory is found."""
-    with patch("pathlib.Path.cwd", return_value=tmp_path):
+    with (
+        patch("pathlib.Path.cwd", return_value=tmp_path),
+        patch("work_tools.core.util.project_path._find_project_root_from_file", return_value=None),
+    ):
         with pytest.raises(RuntimeError, match="Cannot determine git repository root"):
             get_git_repo_root()
 

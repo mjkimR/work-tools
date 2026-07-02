@@ -84,7 +84,9 @@ class FakeTaigaClient:
             return USER_STORY_BY_REF[ref]
         raise ValueError(f"User story ref #{ref} not found in fake data")
 
-    def update_user_story(self, us_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None):
+    def update_user_story(
+        self, us_id, subject=None, description=None, status=None, assigned_to=None, comment=None, version=None
+    ):
         base = self.get_user_story(us_id).copy()
         if subject is not None:
             base["subject"] = subject

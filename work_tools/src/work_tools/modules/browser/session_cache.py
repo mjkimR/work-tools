@@ -1,7 +1,7 @@
 """Browser session cache for storing and reusing auth credentials.
 
-Caches ``SessionInfo`` (cookies / localStorage tokens) to disk as JSON files
-under ``{git_repo_root}/.cache/browser_session/{domain}.json``.
+Caches ``SessionInfo`` (cookies / localStorage tokens) to disk as JSON files.
+Use ``WT_BROWSER_SESSION_CACHE_DIR`` to choose an explicit cache directory.
 
 TTL defaults to **86 400 seconds (1 day)** and can be overridden via the
 ``BROWSER_SESSION_CACHE_TTL_SECONDS`` environment variable.
@@ -10,9 +10,9 @@ TTL defaults to **86 400 seconds (1 day)** and can be overridden via the
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import os
-import binascii
 import time
 from pathlib import Path
 
@@ -21,19 +21,47 @@ from work_tools.modules.browser.schema import SessionInfo
 
 _DEFAULT_TTL_SECONDS = 86_400  # 24 hours
 _CACHE_TTL_ENV_VAR = "BROWSER_SESSION_CACHE_TTL_SECONDS"
-_CACHE_SUBDIR = ".cache/browser_session"
+_CACHE_DIR_ENV_VAR = "WT_BROWSER_SESSION_CACHE_DIR"
+_CACHE_SUBDIR = "work-tools/browser_session"
+_WORKSPACE_CACHE_SUBDIR = ".work-tools-cache/browser_session"
+
+
+def _user_cache_dir() -> Path:
+    """Return the platform user cache path for browser session data."""
+    xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
+    if xdg_cache_home:
+        return Path(xdg_cache_home).expanduser() / _CACHE_SUBDIR
+    if os.name == "posix" and os.uname().sysname == "Darwin":
+        return Path.home() / "Library" / "Caches" / _CACHE_SUBDIR
+    return Path.home() / ".cache" / _CACHE_SUBDIR
+
+
+def _ensure_writable_dir(path: Path) -> bool:
+    """Create *path* if needed and return whether it is writable."""
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".write-test"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True
+    except Exception as exc:
+        logger.debug(f"[SessionCache] Cache dir is not writable ({path}): {exc}")
+        return False
 
 
 def _get_cache_dir() -> Path | None:
-    """Return the cache directory path, or None if the git root cannot be found."""
-    try:
-        from work_tools.core.util.project_path import get_git_repo_root
+    """Return a writable cache directory, or None when no candidate works."""
+    override = os.environ.get(_CACHE_DIR_ENV_VAR)
+    if override:
+        path = Path(override).expanduser()
+        return path if _ensure_writable_dir(path) else None
 
-        root = get_git_repo_root()
-        return Path(root) / _CACHE_SUBDIR
-    except Exception as exc:
-        logger.warning(f"[SessionCache] Could not determine git repo root — caching disabled: {exc}")
-        return None
+    for path in (_user_cache_dir(), Path.cwd() / _WORKSPACE_CACHE_SUBDIR):
+        if _ensure_writable_dir(path):
+            return path
+
+    logger.warning("[SessionCache] No writable browser session cache directory found; caching disabled.")
+    return None
 
 
 def _get_ttl() -> int:
@@ -85,7 +113,7 @@ class SessionCache:
 
     Cache files are stored at::
 
-        {git_repo_root}/.cache/browser_session/{safe_domain}.json
+        {cache_dir}/{safe_domain}.json
 
     Each file contains the serialised ``SessionInfo`` plus a ``"cached_at"``
     UNIX timestamp used to enforce the TTL.

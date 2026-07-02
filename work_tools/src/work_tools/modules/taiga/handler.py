@@ -80,7 +80,15 @@ class TaigaCLIHandlers:
             print(f"   ↳ Task created: #{task['ref']} - {task['subject']}")
 
     def update_userstory(
-        self, ref, subject=None, description=None, status=None, custom_attrs=None, comment=None, me=False, assigned_to=None
+        self,
+        ref,
+        subject=None,
+        description=None,
+        status=None,
+        custom_attrs=None,
+        comment=None,
+        me=False,
+        assigned_to=None,
     ):
         """Unified update: Core US fields and Custom Attributes via #ref"""
         us_id = self._get_id_from_ref(ref)

@@ -212,8 +212,6 @@ class GitRepoManager:
         start, end = self.parse_commit_range(commit_input)
         return self.get_git_log(start, end, include_diff=True)
 
-
-
     # ── Commit-info helpers ─────────────────────────────────────────────
 
     def get_staged_diff(self) -> str:
