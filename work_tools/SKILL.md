@@ -34,6 +34,7 @@ This fetches guidelines, API specs, and environment variables needed for the tas
 - Do NOT switch the command execution directory (CWD) to the `work-tools` repository. Run `wt` from the active target workspace.
 - The `wt` tool will automatically resolve its `.env` settings and dependencies globally.
 - Let the `wt` CLI automatically target the configured repository (via `GIT_TARGET_REPO`) from the `work-tools` root.
+- **Do NOT import `work_tools` library modules directly (e.g., using `python -c "from work_tools.modules... import ..."`) to call internal APIs.** Doing so bypasses the CLI entrypoint path setup, preventing the `.env` configuration from loading and causing errors like `ValueError: Project ID is not set`. Always invoke the `wt` CLI directly.
 
 ---
 
