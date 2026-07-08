@@ -31,7 +31,9 @@ def generate_custom_attributes() -> str:
     lines = [
         "## Custom Attributes",
         "",
-        "Use these attribute IDs with `update-custom-attr-values`.",
+        'Set values with `wt taiga update-userstory --ref <REF> --custom-attrs "<ATTR_ID>::<value>"`',
+        "(the same `--custom-attrs` flag also works on `create-userstory`).",
+        "For `dropdown` types, the value MUST exactly match one of the listed allowed values.",
         "",
     ]
 
@@ -40,12 +42,23 @@ def generate_custom_attributes() -> str:
         name = attr["name"]
         attr_type = attr.get("type", "text")
         lines.append(f"- {name} (ID: {attr_id}, type: {attr_type})")
+        if attr_type == "dropdown":
+            options = attr.get("extra") or []
+            if options:
+                allowed = " | ".join(options)
+                lines.append(f"    - Allowed values (choose exactly one): {allowed}")
 
     lines += [
         "",
         "Example:",
-        '  wt taiga update-custom-attr-values --ref <REF> --values-json \'{"<ATTR_ID>": "value"}\'',
+        '  wt taiga update-userstory --ref <REF> --custom-attrs "8::release note text"',
     ]
+
+    # Append a dropdown-specific example when at least one dropdown attribute exists.
+    dropdown = next((a for a in attrs if a.get("type") == "dropdown" and (a.get("extra") or [])), None)
+    if dropdown:
+        sample = dropdown["extra"][0]
+        lines.append(f'  wt taiga update-userstory --ref <REF> --custom-attrs "{dropdown["id"]}::{sample}"')
 
     return "\n".join(lines)
 

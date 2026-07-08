@@ -20,6 +20,50 @@ class TaigaCLIHandlers:
             return user["id"]
         return assigned_to
 
+    def _build_custom_attrs_dict(self, custom_attrs) -> dict:
+        """Parse 'attr_id::value' pairs into a dict, validating dropdown values.
+
+        For ``dropdown`` custom attributes, Taiga stores the selected option text
+        as-is, so the value must exactly match one of the options defined in the
+        attribute's ``extra`` list. Any mismatch raises ``ValueError`` before the
+        story is created/updated, preventing silently-invalid values from being saved.
+
+        Args:
+            custom_attrs: Iterable of 'attr_id::value' strings.
+
+        Returns:
+            Dict mapping attribute ID (str) to its value.
+
+        Raises:
+            ValueError: If a dropdown value is not among its allowed options.
+        """
+        attrs_dict = {}
+        for attr_str in custom_attrs:
+            if "::" not in attr_str:
+                continue
+            attr_id, attr_val = attr_str.split("::", 1)
+            attrs_dict[attr_id.strip()] = attr_val
+
+        if not attrs_dict:
+            return attrs_dict
+
+        # Only fetch definitions when needed, to validate dropdown selections.
+        attr_defs = {str(a["id"]): a for a in self.client.get_userstory_custom_attributes()}
+        for attr_id, value in attrs_dict.items():
+            definition = attr_defs.get(str(attr_id))
+            if not definition or definition.get("type") != "dropdown":
+                continue
+            options = definition.get("extra") or []
+            if value not in options:
+                name = definition.get("name", f"ID:{attr_id}")
+                allowed = ", ".join(options) if options else "(no options defined)"
+                raise ValueError(
+                    f"'{value}' is not a valid option for '{name}' (ID:{attr_id}). "
+                    f"Choose one of: {allowed}"
+                )
+
+        return attrs_dict
+
     # ── Command Handlers ──────────────────────────────────────────────────────
 
     def create_userstory(
@@ -36,6 +80,10 @@ class TaigaCLIHandlers:
         """Unified creation: Core US + Custom Attributes + Tasks"""
         resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
 
+        # Validate custom attributes up front so an invalid value fails before
+        # anything is created (no orphaned User Story on a bad dropdown value).
+        attrs_dict = self._build_custom_attrs_dict(custom_attrs) if custom_attrs else None
+
         # 1. Create Core User Story
         us = self.client.create_user_story(
             subject=subject, description=description, status=status, assigned_to=resolved_assignee
@@ -45,15 +93,9 @@ class TaigaCLIHandlers:
         print(f"   URL: https://tree.taiga.io/project/{us['project_extra_info']['slug']}/us/{us['ref']}")
 
         # 2. Update Custom Attributes if provided
-        if custom_attrs:
-            attrs_dict = {}
-            for attr_str in custom_attrs:
-                if "::" in attr_str:
-                    attr_id, attr_val = attr_str.split("::", 1)
-                    attrs_dict[attr_id] = attr_val
-            if attrs_dict:
-                self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
-                print("   Custom attributes applied.")
+        if attrs_dict:
+            self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
+            print("   Custom attributes applied.")
 
         # 3. Create Tasks if provided
         tasks_to_create = []
@@ -94,6 +136,10 @@ class TaigaCLIHandlers:
         us_id = self._get_id_from_ref(ref)
         resolved_assignee = self._resolve_assigned_to(me=me, assigned_to=assigned_to)
 
+        # Validate custom attributes up front so an invalid value fails before
+        # any core field is mutated (all-or-nothing on a bad dropdown value).
+        attrs_dict = self._build_custom_attrs_dict(custom_attrs) if custom_attrs else None
+
         # 1. Update Core Fields (only if at least one field is provided)
         if any(v is not None for v in [subject, description, status, resolved_assignee, comment]):
             us = self.client.update_user_story(
@@ -107,15 +153,9 @@ class TaigaCLIHandlers:
             print(f"✅ User Story #{us['ref']} updated.")
 
         # 2. Update Custom Attributes
-        if custom_attrs:
-            attrs_dict = {}
-            for attr_str in custom_attrs:
-                if "::" in attr_str:
-                    attr_id, attr_val = attr_str.split("::", 1)
-                    attrs_dict[attr_id] = attr_val
-            if attrs_dict:
-                self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
-                print(f"   Custom attributes updated for #{ref}.")
+        if attrs_dict:
+            self.client.update_userstory_custom_attribute_values(us_id, attrs_dict)
+            print(f"   Custom attributes updated for #{ref}.")
 
     def create_task(self, us_ref, subject=None, description="", tasks=None, tasks_json=None, me=False):
         """Create tasks linked to a US via #ref"""

@@ -33,23 +33,11 @@ def _build_taiga_env():
         raise Exception(f"Project ID '{project_id}' not found in the list of projects.")
     client.set_project_id(project_id)
 
-    # 3. User Story Custom Attributes
-    custom_attrs = client.get_userstory_custom_attributes()
-    custom_attr_envs = {}
-    if custom_attrs:
-        print("Found Custom Attributes:")
-        for attr in custom_attrs:
-            attr_id = attr["id"]
-            attr_name = attr["name"]
-            env_key = "TAIGA_CA_" + attr_name.upper().replace(" ", "_").replace("-", "_")
-            custom_attr_envs[env_key] = attr_id
-            print(f"  {env_key}={attr_id}  ({attr_name})")
-    else:
-        print("  No Custom Attributes found")
-
+    # Custom attributes are resolved dynamically from the API at runtime
+    # (see scripts/taiga_custom_attrs.py and the taiga handler), so they are
+    # intentionally NOT baked into .env here.
     return {
         "TAIGA_PROJECT_ID": project_id,
-        **custom_attr_envs,
     }, "# -- TAIGA Environments"
 
 

@@ -37,16 +37,20 @@ def cli():
 @click.option("--assigned-to", type=int, default=None, help="Assign to specific user ID")
 def create_userstory(subject, description, status, tasks, tasks_json, custom_attrs, me, assigned_to):
     """Create a User Story with tasks and custom attributes in one go"""
-    get_handlers().create_userstory(
-        subject=subject,
-        description=description,
-        status=status,
-        tasks=list(tasks) if tasks else None,
-        tasks_json=tasks_json,
-        custom_attrs=list(custom_attrs) if custom_attrs else None,
-        me=me,
-        assigned_to=assigned_to,
-    )
+    try:
+        get_handlers().create_userstory(
+            subject=subject,
+            description=description,
+            status=status,
+            tasks=list(tasks) if tasks else None,
+            tasks_json=tasks_json,
+            custom_attrs=list(custom_attrs) if custom_attrs else None,
+            me=me,
+            assigned_to=assigned_to,
+        )
+    except ValueError as e:
+        click.echo(f"❌ {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command("update-userstory")
@@ -60,16 +64,20 @@ def create_userstory(subject, description, status, tasks, tasks_json, custom_att
 @click.option("--assigned-to", type=int, default=None, help="Assign to user ID")
 def update_userstory(ref, subject, description, status, custom_attrs, comment, me, assigned_to):
     """Update an existing User Story's fields and/or custom attributes"""
-    get_handlers().update_userstory(
-        ref=ref,
-        subject=subject,
-        description=description,
-        status=status,
-        custom_attrs=list(custom_attrs) if custom_attrs else None,
-        comment=comment,
-        me=me,
-        assigned_to=assigned_to,
-    )
+    try:
+        get_handlers().update_userstory(
+            ref=ref,
+            subject=subject,
+            description=description,
+            status=status,
+            custom_attrs=list(custom_attrs) if custom_attrs else None,
+            comment=comment,
+            me=me,
+            assigned_to=assigned_to,
+        )
+    except ValueError as e:
+        click.echo(f"❌ {e}", err=True)
+        sys.exit(1)
 
 
 # ── Tasks ─────────────────────────────────────────────────────────────────────
