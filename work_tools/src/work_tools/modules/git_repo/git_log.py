@@ -123,8 +123,14 @@ class GitRepoManager:
         ]
 
         result = self._run_git(*cmd)
-        raw = result.stdout.strip()
-        if not raw:
+        # NOTE: do not use str.strip() here — Python treats the ASCII separators
+        # (\x1e record / \x1f unit, 0x1c–0x1f) as whitespace, so stripping would
+        # eat the leading record separator of the first commit and the trailing
+        # unit separators of the last commit (dropping its body/diff fields and
+        # causing that commit to be skipped as malformed). Strip only for the
+        # emptiness check; hand the untouched output to the parsers.
+        raw = result.stdout
+        if not raw.strip():
             return []
 
         if include_diff:
@@ -184,21 +190,6 @@ class GitRepoManager:
                 }
             )
         return commits
-
-    def get_commit_diff(self, sha: str) -> str:
-        """Retrieve the diff (stat + patch) for a specific commit.
-
-        Args:
-            sha: The commit SHA to inspect.
-
-        Returns:
-            The diff output as a string.
-
-        Raises:
-            RuntimeError: If the git show command fails.
-        """
-        result = self._run_git("show", "--stat", "--patch", "--date=iso", sha)
-        return result.stdout.strip()
 
     def fetch_commits_with_diff(self, commit_input: str) -> list[dict]:
         """Parse commit input and return commits with their diffs attached.
