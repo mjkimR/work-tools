@@ -50,8 +50,10 @@ _TASK_TEMPLATE = {
 }
 
 CUSTOM_ATTRIBUTES = [
-    {"id": 1, "name": "Priority", "type": "text"},
-    {"id": 2, "name": "Sprint-Goal", "type": "text"},
+    {"id": 1, "name": "Priority", "type": "text", "extra": None},
+    {"id": 2, "name": "Sprint-Goal", "type": "text", "extra": None},
+    # Placeholder options only — never put real customer names in test fixtures.
+    {"id": 15, "name": "Target Group", "type": "dropdown", "extra": ["고객사_A", "고객사_B", "내부"]},
 ]
 
 CUSTOM_ATTRIBUTE_VALUES = {

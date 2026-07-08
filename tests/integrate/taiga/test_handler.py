@@ -133,3 +133,38 @@ class TestUpdateUserstory:
         assert len(fake_taiga_client.updated_ca_values) == 1
         assert fake_taiga_client.updated_ca_values[0]["us_id"] == 100
         assert fake_taiga_client.updated_ca_values[0]["attributes_values"] == {"1": "new value"}
+
+
+class TestDropdownCustomAttrs:
+    """Dropdown custom attributes must match one of the defined options.
+
+    Option values here are placeholders — see the fixture; real customer names
+    must never be committed to test data.
+    """
+
+    def test_create_with_valid_dropdown_value(self, taiga_handlers, fake_taiga_client):
+        taiga_handlers.create_userstory(subject="US", custom_attrs=["15::고객사_A"])
+        assert fake_taiga_client.updated_ca_values[0]["attributes_values"] == {"15": "고객사_A"}
+
+    def test_create_with_invalid_dropdown_value_raises(self, taiga_handlers, fake_taiga_client):
+        with pytest.raises(ValueError, match="not a valid option"):
+            taiga_handlers.create_userstory(subject="US", custom_attrs=["15::고객사_Z"])
+        # Fail fast: no User Story is created and no attribute values are written.
+        assert fake_taiga_client.created_stories == []
+        assert fake_taiga_client.updated_ca_values == []
+
+    def test_error_message_lists_allowed_options(self, taiga_handlers):
+        with pytest.raises(ValueError, match="고객사_A, 고객사_B, 내부"):
+            taiga_handlers.update_userstory(ref=42, custom_attrs=["15::없는값"])
+
+    def test_update_with_invalid_dropdown_leaves_core_fields_untouched(self, taiga_handlers, fake_taiga_client):
+        with pytest.raises(ValueError, match="not a valid option"):
+            taiga_handlers.update_userstory(ref=42, subject="New title", custom_attrs=["15::없는값"])
+        # Validation happens before the core update, so nothing is mutated.
+        assert fake_taiga_client.updated_stories == []
+        assert fake_taiga_client.updated_ca_values == []
+
+    def test_non_dropdown_value_passes_through_unvalidated(self, taiga_handlers, fake_taiga_client):
+        # Free-text attributes accept any value (no options to match against).
+        taiga_handlers.update_userstory(ref=42, custom_attrs=["1::anything goes"])
+        assert fake_taiga_client.updated_ca_values[0]["attributes_values"] == {"1": "anything goes"}
