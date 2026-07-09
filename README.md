@@ -27,11 +27,14 @@ uv run wt init
 The command will:
 1. Connect to Taiga via your open Chrome session and list available projects
 2. Ask you to select a project ID
-3. Auto-discover Taiga custom attributes and assign `TAIGA_CA_*` keys
-4. Collect Git settings (`GIT_USER_EMAIL`, `GIT_TARGET_REPO`)
-5. Write everything to `.env` at the project root
+3. Collect Git settings (`GIT_USER_EMAIL`, `GIT_TARGET_REPO`)
+4. Write everything to `.env` at the project root
 
 > **Prerequisite**: Chrome must have the Taiga site open and logged in before running the script.
+
+> **Note**: Taiga custom attributes are *not* written to `.env`. They are resolved from the
+> Taiga API at runtime, so adding or changing an attribute needs no `.env` rebuild.
+> Run `wt docs read-docs task-writer` to see the current IDs and allowed values.
 
 ## 🖥️ CLI Usage
 

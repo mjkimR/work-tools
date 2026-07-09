@@ -44,6 +44,12 @@ wt workflow get-context --ref <US_REF>
 > **🚨 IMPORTANT: Do NOT set or update the `status` field.**
 > Status management is strictly handled manually by human users. Never use the `--status` option in any of your commands.
 
+<!-- forbidden-flags: --status -->
+<!-- Machine-readable contract for the rule above. Every flag listed here is enforced by
+     TestBundleSelfConsistency: no bundled reference may show it in a `wt` invocation.
+     Add a flag here whenever you write a new prohibition, or the rule will not be enforced. -->
+
+
 > **🚨 IMPORTANT: Do NOT use GFM checkboxes (`[ ]` or `[x]`).**
 > Taiga does not support GFM checkbox syntax in descriptions, and it will break the formatting. 
 > Use standard bullet points (`-` or `*`).
@@ -60,12 +66,20 @@ wt taiga create-userstory \
   --subject "<SUBJECT>" \
   --tasks "Task 1::Detailed description" \
   --tasks "Task 2::Another description" \
-  --custom-attrs "123::Value A" \
-  --custom-attrs "456::Value B" \
+  --custom-attrs "<ATTR_ID>::<value>" \
+  --custom-attrs "<ATTR_ID>::<value>" \
   --me
 ```
 *Note: Use `::` to separate subject and description in the `--tasks` option, and `ID::Value` for `--custom-attrs`. Always repeat the flag for multiple items (e.g., `--tasks "A" --tasks "B"`).*
 *Add `--me` if the user says "assign to me" or "my task".*
+
+> **Custom attribute IDs are never guessed.** The real IDs, their types, and — for
+> `dropdown` attributes — the exact list of allowed values are in the **Custom Attributes**
+> section appended to the end of this document (generated live from Taiga).
+> A `dropdown` value must match one of its allowed values *exactly*, or the command
+> fails before anything is written.
+> If that section is missing or shows a generator error, stop and ask the user to check
+> their Chrome/Taiga login — never guess an ID or a dropdown value.
 
 ### Update a User Story
 Update an existing User Story's core fields and/or custom attributes directly using its `#ref` number.
@@ -75,7 +89,7 @@ Update an existing User Story's core fields and/or custom attributes directly us
 wt taiga update-userstory --ref <US_REF> --subject "<new title>" --me
 
 # Update description and custom attributes
-wt taiga update-userstory --ref <US_REF> --description "<new desc>" --custom-attrs "123::new value"
+wt taiga update-userstory --ref <US_REF> --description "<new desc>" --custom-attrs "<ATTR_ID>::<value>"
 ```
 *Available fields:* `--subject`, `--description`, `--custom-attrs`, `--assigned-to <USER_ID>`, `--me`
 
@@ -111,6 +125,6 @@ wt taiga update-task --ref <TASK_REF> --subject "<new task title>"
 | "Add a TODO for API modularization refactoring."                                 | Apply `future_task_guideline.md` → `wt taiga create-userstory ...`                    |
 | "Add dark mode support feature, split backend and frontend tasks, assign to me." | Apply `feature_guideline.md` → `wt taiga create-userstory --tasks-json ... --me`      |
 | "Add one more task to US #42."                                                   | `wt taiga create-task --us-ref 42 --subject "..."`                                    |
-| "Update the title and custom attributes of US #42."                              | `wt taiga update-userstory --ref 42 --subject "..." --custom-attrs "1::v"`           |
-| "Reassign Task #105 to me and update its status."                                | `wt taiga update-task --ref 105 --status <ID> --me`                                   |
+| "Update the title and custom attributes of US #42."                              | `wt taiga update-userstory --ref 42 --subject "..." --custom-attrs "<ATTR_ID>::<value>"` |
+| "Reassign Task #105 to me."                                                      | `wt taiga update-task --ref 105 --me`                                                 |
 | "Check what tasks are left in US #42."                                           | `wt workflow get-context --ref 42`                                                    |

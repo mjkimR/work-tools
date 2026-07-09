@@ -8,7 +8,7 @@ returns a formatted Markdown section suitable for AI context injection.
 
 Usage (docs_manifest.yaml):
     generators:
-      - "scripts.taiga_custom_attrs:generate_custom_attributes"
+      - "work_tools.scripts.taiga_custom_attrs:generate_custom_attributes"
 """
 
 from work_tools.core import setup
@@ -19,7 +19,8 @@ def generate_custom_attributes() -> str:
     """Fetch Taiga custom attributes and return a formatted Markdown string.
 
     Returns:
-        A Markdown table listing each custom attribute's ID, name, and type.
+        A Markdown section listing each custom attribute's ID, name, and type, plus the
+        allowed values of every ``dropdown`` attribute and usage examples derived from them.
     """
     setup()
     client = TaigaClient()
@@ -48,17 +49,21 @@ def generate_custom_attributes() -> str:
                 allowed = " | ".join(options)
                 lines.append(f"    - Allowed values (choose exactly one): {allowed}")
 
-    lines += [
-        "",
-        "Example:",
-        '  wt taiga update-userstory --ref <REF> --custom-attrs "8::release note text"',
-    ]
+    # Derive every example from the live attribute list. Hardcoding an ID here would
+    # silently start pointing at a deleted or renamed attribute.
+    examples = []
 
-    # Append a dropdown-specific example when at least one dropdown attribute exists.
+    plain = next((a for a in attrs if a.get("type") != "dropdown"), None)
+    if plain:
+        examples.append(f'  wt taiga update-userstory --ref <REF> --custom-attrs "{plain["id"]}::<{plain["name"]} value>"')
+
     dropdown = next((a for a in attrs if a.get("type") == "dropdown" and (a.get("extra") or [])), None)
     if dropdown:
         sample = dropdown["extra"][0]
-        lines.append(f'  wt taiga update-userstory --ref <REF> --custom-attrs "{dropdown["id"]}::{sample}"')
+        examples.append(f'  wt taiga update-userstory --ref <REF> --custom-attrs "{dropdown["id"]}::{sample}"')
+
+    if examples:
+        lines += ["", "Example:", *examples]
 
     return "\n".join(lines)
 
