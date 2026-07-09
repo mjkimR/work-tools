@@ -46,6 +46,9 @@ Choose the subject based on the user's intent:
     - Command: `wt docs read-docs task-writer`
 - **api-reference**: Use when looking up CLI command usage, options, or Quick Command recipes.
     - Command: `wt docs read-docs api-reference`
+- **slack**: Use when posting to Slack, searching Slack messages, or summarizing Slack conversations.
+    - Command: `wt docs read-docs slack`
+    - Note: Slack actions run through the **official Slack MCP server** (not `wt` CLI) — this subject loads working guidelines only.
 
 To see all available subjects at any time:
 

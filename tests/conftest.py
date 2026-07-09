@@ -8,7 +8,6 @@ from tests.fake.data.taiga import (
     USER_STORIES_WITH_IMS,
 )
 from tests.fake.ims_client import FakeImsClient
-from tests.fake.slack_client import FakeSlackClient
 from tests.fake.taiga_client import FakeTaigaClient
 from tests.utils.git_repo import make_git_repo
 
@@ -73,17 +72,6 @@ def git_manager(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_USER_EMAIL", "test@example.com")
     monkeypatch.setenv("GIT_TARGET_REPO", str(tmp_path))
     return make_git_repo(tmp_path)
-
-
-# =============================================================================
-# Slack
-# =============================================================================
-
-
-@pytest.fixture
-def fake_slack_client():
-    """Standalone FakeSlackClient instance."""
-    return FakeSlackClient()
 
 
 # =============================================================================

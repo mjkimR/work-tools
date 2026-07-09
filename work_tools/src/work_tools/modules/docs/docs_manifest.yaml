@@ -30,3 +30,10 @@ subjects:
       - quick_commands.md
     env_vars: [ ]
     generators: [ ] # work_tools.scripts.api_spec:generate_all
+
+  slack:
+    description: "Guidelines for Slack tasks (posting, searching, summarizing) via the official Slack MCP server. Guidance only — no wt CLI commands for Slack."
+    references:
+      - slack_guideline.md
+    env_vars: [ ]
+    generators: [ ]
