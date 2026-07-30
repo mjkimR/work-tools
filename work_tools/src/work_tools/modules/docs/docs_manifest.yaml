@@ -12,9 +12,13 @@
 subjects:
   task-writer:
     description: "AI skill context for automated management of Taiga user stories and tasks."
+    # Order matters: the agent reads this bundle top-down, so the normative templates must come
+    # early. api_spec.md is deliberately NOT listed here — it is 400 lines of generated CLI --help
+    # that pushed the guideline templates past line 500, and it is already served in full by the
+    # `api-reference` subject. The command examples task-writer actually needs are inline in
+    # task_writer_guideline.md. Adding it back re-creates the burial problem.
     references:
       - task_writer_guideline.md
-      - api_spec.md
       - feature_guideline.md
       - future_task_guideline.md
       - issue_guideline.md
