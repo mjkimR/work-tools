@@ -54,6 +54,23 @@ wt workflow get-context --ref <US_REF>
 > Taiga does not support GFM checkbox syntax in descriptions, and it will break the formatting. 
 > Use standard bullet points (`-` or `*`).
 
+> **🚨 IMPORTANT: Copy the description template — do not merely reference it.**
+> Before writing a description, state which guideline you are applying, then paste that
+> guideline's `###` headings verbatim and fill them in.
+> **Do not add, drop, rename, or reorder sections.** Keep a section even when there is nothing
+> to put in it — write "해당 없음" rather than deleting it.
+> Content that does not fit the template is a signal to use a **custom field** or `--comment`,
+> never a signal to grow the body.
+
+<!-- required-sections: feature_guideline.md = 상세 설계 및 체크리스트 | 관련 자료 -->
+<!-- required-sections: issue_guideline.md = 이슈 현상 | 원인 분석 (예상) | 대응 계획 | 관련 자료 -->
+<!-- required-sections: future_task_guideline.md = 작업 배경 | 주요 작업 내용 | 예상 시점 -->
+<!-- Machine-readable contract for the rule above, mirroring `forbidden-flags`. Every section
+     listed here is enforced by TestDescriptionTemplateContract: it must appear as an `###`
+     heading inside the named guideline. Editing a guideline's template without updating this
+     marker (or vice versa) fails the suite, so the rule and its source stay in sync.
+     The prose-only version of this rule was ignored twice in practice — keep it machine-checked. -->
+
 ### Create a User Story
 Always create a User Story as the primary unit of work. You can create the story, attach tasks, and set custom attributes **in one go**.
 

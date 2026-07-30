@@ -13,6 +13,13 @@ from work_tools.modules.docs.loader import DocsLoader
 #     <!-- forbidden-flags: --status -->
 _FORBIDDEN_MARKER = re.compile(r"<!--\s*forbidden-flags:\s*(?P<flags>[^>]+?)\s*-->")
 
+# A reference declares the sections a guideline's description template requires with a marker
+# placed next to the rule:
+#     <!-- required-sections: feature_guideline.md = 상세 설계 및 체크리스트 | 관련 자료 -->
+_REQUIRED_SECTIONS_MARKER = re.compile(
+    r"<!--\s*required-sections:\s*(?P<target>[^=]+?)\s*=\s*(?P<sections>[^>]+?)\s*-->"
+)
+
 # Subjects SKILL.md tells the agent to load, e.g. ``wt docs read-docs task-writer``.
 # Stops at a backtick or paren so surrounding Markdown is not captured.
 _READ_DOCS_SUBJECT = re.compile(r"read-docs\s+`?(?P<subject>[^\s`)]+)")
@@ -239,4 +246,88 @@ class TestSkillRoutingIntegrity:
             "SKILL.md routes the agent to subjects that docs_manifest.yaml does not define:\n"
             + "\n".join(f"  - {s}" for s in sorted(unknown))
             + f"\nDefined subjects: {', '.join(loader.list_subjects())}"
+        )
+
+
+class TestDescriptionTemplateContract:
+    """Keeps the description-template rule honest.
+
+    `--status` is obeyed because a marker plus this suite make it cheap to check and expensive
+    to break. The "follow the description template" rule had no such backing — it was prose —
+    and it was ignored twice in real usage: once by not reading far enough, once by reading the
+    template and then writing a different structure anyway.
+
+    So the rule now declares its sections the same way a prohibition declares its flags:
+
+        <!-- required-sections: feature_guideline.md = 상세 설계 및 체크리스트 | 관련 자료 -->
+
+    The point is not to police the agent at runtime — nothing here can do that. It is to stop
+    the contract and the templates from drifting apart, so an agent that *does* follow the
+    marker is following what the guideline actually says.
+    """
+
+    @pytest.fixture
+    def bundle(self):
+        """Map every manifest-declared reference to its raw text."""
+        loader = DocsLoader()
+        ref_root = loader.settings.resolve_references_dir()
+        declared = {ref for entry in loader.manifest.subjects.values() for ref in entry.references}
+        return {rel: (ref_root / rel).read_text(encoding="utf-8") for rel in sorted(declared)}
+
+    @staticmethod
+    def _contracts(bundle: dict[str, str]) -> dict[str, list[str]]:
+        """Collect `guideline file -> required section headings` from the markers."""
+        contracts: dict[str, list[str]] = {}
+        for text in bundle.values():
+            for match in _REQUIRED_SECTIONS_MARKER.finditer(text):
+                target = match.group("target").strip()
+                # A second marker for the same target adds to that target's contract rather than
+                # replacing it — `_forbidden_flags` unions across references for the same reason.
+                # An assignment here would let a duplicate marker drop the sections declared
+                # earlier, which is the silent-disable failure this suite exists to prevent.
+                declared = contracts.setdefault(target, [])
+                for section in match.group("sections").split("|"):
+                    section = section.strip()
+                    if section and section not in declared:
+                        declared.append(section)
+        return contracts
+
+    def test_bundle_declares_its_required_sections(self, bundle):
+        """At least one reference must declare a required-sections marker.
+
+        Without this, deleting every marker would silently disable the check below and leave a
+        green test guarding nothing — the same trap `forbidden-flags` guards against.
+        """
+        assert self._contracts(bundle), (
+            "No `<!-- required-sections: ... -->` marker found in any bundled reference. "
+            "If the template rule was dropped on purpose, delete TestDescriptionTemplateContract too."
+        )
+
+    def test_declared_sections_exist_in_their_guideline(self, bundle):
+        """Every declared section must be a real `###` heading in the guideline it names.
+
+        This is what stops drift. Rename `### 관련 자료` in feature_guideline.md and the marker
+        still promises it, so an agent copying the marker produces a description the guideline
+        no longer describes. Here that fails loudly instead.
+        """
+        violations = []
+        for target, sections in self._contracts(bundle).items():
+            if target not in bundle:
+                violations.append(f"  - marker names `{target}`, which the manifest does not bundle")
+                continue
+            headings = {
+                line.removeprefix("###").strip()
+                for line in bundle[target].splitlines()
+                if line.startswith("### ")
+            }
+            for section in sections:
+                if section not in headings:
+                    violations.append(
+                        f"  - `{target}` has no `### {section}` heading "
+                        f"(found: {', '.join(sorted(headings)) or 'none'})"
+                    )
+
+        assert not violations, (
+            "required-sections markers disagree with the guidelines they name. Update the marker "
+            "in task_writer_guideline.md and the template together:\n" + "\n".join(violations)
         )

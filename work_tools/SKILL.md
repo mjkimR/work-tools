@@ -1,11 +1,19 @@
 ---
 name: work-tools
 description:
-  A collection of AI skills for automating work tasks — Taiga management, Git workflows, and more.
-  Uses `wt docs read-docs subject` to load the appropriate context before starting any task.
+  Use this skill only when the user explicitly asks to use work-tools, the `wt` CLI, Taiga/workflow automation,
+  or one of its documented quick commands such as `import-ims`, `sync-context`, `sync-git`, or `gen-commit`.
+  Do not use this skill for general coding, Git, debugging, explanation, or loosely related work tasks.
 ---
 
 # Skill: work-tools
+
+## Activation Rule
+
+Only use this skill when the user explicitly requests work-tools, the `wt` CLI, Taiga/workflow automation,
+or one of the documented quick commands.
+
+Do not use this skill for nearby, loosely related, or general software engineering tasks.
 
 ## 💡 Core Strategy: Prioritize Workflow CLI
 
@@ -25,6 +33,11 @@ wt docs read-docs <subject>
 ```
 
 This fetches guidelines, API specs, and environment variables needed for the task.
+
+**Read the output in full.** Do not pipe it through `head`, `tail`, `sed -n`, or any other
+truncation. The normative parts — description templates, custom-field IDs and their allowed
+dropdown values — sit *after* the general instructions, so a truncated read reliably drops
+exactly the parts that must be obeyed.
 
 ---
 
@@ -81,6 +94,17 @@ This skill supports shortcut workflows (Quick Commands). When you encounter thes
 
 1. **Identify intent** — determine what the user wants to accomplish.
 2. **Select Tool Strategy** — check if `wt workflow` can handle the request in one go.
-3. **Load context** — run `wt docs read-docs <subject>` to get the full guideline.
-4. **Follow the loaded guideline** — the context returned by `read-docs` contains all instructions, API specs, and
-   examples needed. Do not proceed without loading it first.
+3. **Load context** — run `wt docs read-docs <subject>` and read the output in full, untruncated.
+   Do not proceed without loading it first.
+4. **Declare the guideline** — for Taiga writes, say which guideline you are applying
+   (`issue` / `feature` / `future_task`) before writing anything. Picking one is a decision;
+   skipping the decision is how templates get blended.
+5. **Copy the template, don't reference it** — paste that guideline's `###` headings verbatim,
+   then fill them in. Do not add, drop, rename, or reorder sections. Keep empty sections and
+   write "해당 없음".
+6. **Route the overflow** — content that does not fit the template goes to a **custom field**
+   or `--comment`. It is never a reason to grow the description body.
+
+> Steps 4–6 exist because "follow the loaded guideline" is too abstract to act on. Having read a
+> template is not the same as having used it: the failure mode in practice is reading it, then
+> letting the material at hand dictate a different structure.
