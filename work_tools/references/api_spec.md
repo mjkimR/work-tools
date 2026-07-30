@@ -141,6 +141,9 @@ Usage: wt docs read-docs [OPTIONS] SUBJECT
 
   * api-reference: API specification reference for CLI tools.
 
+  * slack: Guidelines for Slack tasks (posting, searching, summarizing) via
+  the official Slack MCP server. Guidance only — no wt CLI commands for Slack.
+
   * task-writer: AI skill context for automated management of Taiga user
   stories and tasks.
 
@@ -337,6 +340,7 @@ Options:
   --subject TEXT         New subject
   --description TEXT     New description
   --status INTEGER       New status ID
+  --comment TEXT         Add a comment to the history
   --me                   Assign to myself
   --assigned-to INTEGER  Assign to specific user ID
   --help                 Show this message and exit.
@@ -356,6 +360,7 @@ Options:
   --status INTEGER       New status ID
   --custom-attrs TEXT    Custom attributes to update as 'attr_id::value'
                          (repeatable)
+  --comment TEXT         Add a comment to the history
   --me                   Assign to myself
   --assigned-to INTEGER  Assign to user ID
   --help                 Show this message and exit.
